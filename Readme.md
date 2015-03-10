@@ -14,5 +14,7 @@ firmware as downloadable from
 http://linux-libre.fsfla.org/pub/linux-libre/releases/     and     ftp://ftp.linux.org.tr 
 are in the folders with the name libre-?.??-gnu
 
+Also use the scripts deblob*  for generation of the GNU/Linux kernel.
+
 
  
