@@ -2554,27 +2554,6 @@ diff -uNr linux-3.18.7/dropped.txt linux-3.18.7-14.15/dropped.txt
 +UBUNTU: SAUCE: (no-up) irqchip:gic: change access of gicc_ctrl register to read modify write.
 +UBUNTU: SAUCE: (no-up) PCI: Increase BAR size quirk for IBM ipr SAS Crocodile adapters
 +
-diff -uNr linux-3.18.7/fs/exec.c linux-3.18.7-14.15/fs/exec.c
---- linux-3.18.7/fs/exec.c	2014-12-07 22:21:05.000000000 +0000
-+++ linux-3.18.7-14.15/fs/exec.c	2015-02-21 12:47:54.428420999 +0000
-@@ -57,6 +57,8 @@
- #include <linux/oom.h>
- #include <linux/compat.h>
- 
-+#include <trace/events/fs.h>
-+
- #include <asm/uaccess.h>
- #include <asm/mmu_context.h>
- #include <asm/tlb.h>
-@@ -771,6 +773,8 @@
- 
- 	fsnotify_open(file);
- 
-+	trace_open_exec(name->name);
-+
- 	err = deny_write_access(file);
- 	if (err)
- 		goto exit;
 diff -uNr linux-3.18.7/fs/ext4/inode.c linux-3.18.7-14.15/fs/ext4/inode.c
 --- linux-3.18.7/fs/ext4/inode.c	2014-12-07 22:21:05.000000000 +0000
 +++ linux-3.18.7-14.15/fs/ext4/inode.c	2015-02-21 12:47:54.429420999 +0000

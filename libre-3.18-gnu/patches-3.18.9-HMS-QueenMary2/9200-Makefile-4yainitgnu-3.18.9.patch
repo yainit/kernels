@@ -8,7 +8,7 @@ diff -uNr a/Makefile b/Makefile
 -EXTRAVERSION =-gnu
 -NAME = Diseased Newt
 +EXTRAVERSION = .yainitgnuall
-+NAME = YaIniT-GNU/Libre with all ftom Gentoo Mageia OpenSuSE Fedora PCLOS and ZEN BFS BFQ BLD MPTCP UKSM
++NAME = YaIniT-GNU/Libre with all from Gentoo Mageia OpenSuSE Fedora PCLOS and ZEN BFS BFQ BLD MPTCP UKSM
  
  # *DOCUMENTATION*
  # To see a list of typical targets execute "make help"
