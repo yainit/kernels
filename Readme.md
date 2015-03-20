@@ -3,7 +3,7 @@
 
 This repository contains the folders with the
 kernel patchsets chosen and written to make the 
-YaIniT kernel work the nearest possible to its desigend functionality.
+YaIniT kernel work the nearest possible to its designed functionality.
 
 The patchsets for the standard kernel as downloadable from 
 ftp://ftp.kernel.org    and mirrors
