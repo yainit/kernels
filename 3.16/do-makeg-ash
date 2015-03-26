@@ -1,7 +1,7 @@
 #!/bin/busybox ash
 # This is universal kernel making script - (C) Dieter Miosga, 2009-12-11 through 2011-03-29
 
-³set -x
+#set -x
 #
 
 if [ "$1" = "" ]; then

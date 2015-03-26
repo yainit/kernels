@@ -1,0 +1,14 @@
+diff -uNr linux-3.16.7/scripts/mkcompile_h linux-3.16.7-zen/scripts/mkcompile_h
+--- linux-3.16.7/scripts/mkcompile_h	2014-08-03 22:25:02.000000000 +0000
++++ linux-3.16.7-zen/scripts/mkcompile_h	2015-03-20 00:00:04.820525958 +0000
+@@ -54,8 +54,8 @@
+ fi
+ 
+ UTS_VERSION="#$VERSION"
+-CONFIG_FLAGS="ZEN"
+-if [ -n "$SMP" ] ; then CONFIG_FLAGS="$CONFIG_FLAGS SMP"; fi
++CONFIG_FLAGS="YaIniT OSS PCLOS ALL"
++if [ -n "$SMP" ] ; then CONFIG_FLAGS="$CONFIG_FLAGS SMP"; fi
+ if [ -n "$PREEMPT" ] ; then CONFIG_FLAGS="$CONFIG_FLAGS PREEMPT"; fi
+ UTS_VERSION="$UTS_VERSION $CONFIG_FLAGS $TIMESTAMP"
+ 

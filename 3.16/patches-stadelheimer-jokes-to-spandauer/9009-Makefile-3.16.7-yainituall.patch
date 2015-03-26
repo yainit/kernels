@@ -1,0 +1,13 @@
+diff --git a/Makefile b/Makefile
+index 41efc3d9f2e0..5c4bc3fc18c0 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,6 +1,6 @@
+ VERSION = 3
+ PATCHLEVEL = 16
+ SUBLEVEL = 7
+-EXTRAVERSION = -zen
+-NAME = Doctor Commando And The Commandos Of The Universe
++EXTRAVERSION = .yainitall
++NAME = RT-BFS YaIniT + TCP-MultiPath UKSM ZEN PCLinuxOS OpenSuSE Fedora Mageia
+ 
