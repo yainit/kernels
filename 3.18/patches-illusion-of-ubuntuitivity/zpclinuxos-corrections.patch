@@ -1,0 +1,147 @@
+diff -iwBEr -U 4 linux-3.18.7-gnunew/arch/x86/mm/pgtable_32.c linux-3.18.7-gnupclos/arch/x86/mm/pgtable_32.c
+--- linux-3.18.7-gnunew/arch/x86/mm/pgtable_32.c	2015-03-01 13:08:52.568891020 +0000
++++ linux-3.18.7-gnupclos/arch/x86/mm/pgtable_32.c	2015-03-01 13:00:36.167927746 +0000
+@@ -17,9 +17,9 @@
+ #include <asm/tlb.h>
+ #include <asm/tlbflush.h>
+ #include <asm/io.h>
+ 
+-unsigned int __VMALLOC_RESERVE = 192 << 20;
++unsigned int __VMALLOC_RESERVE = 256 << 20;
+ 
+ /*
+  * Associate a virtual page frame with a given physical page frame 
+  * and protection flags for that frame.
+diff -iwBEr -U 4 linux-3.18.7-gnunew/drivers/ata/pata_jmicron.c linux-3.18.7-gnupclos/drivers/ata/pata_jmicron.c
+--- linux-3.18.7-gnunew/drivers/ata/pata_jmicron.c	2015-03-01 13:08:52.573891019 +0000
++++ linux-3.18.7-gnupclos/drivers/ata/pata_jmicron.c	2014-12-07 22:21:05.000000000 +0000
+@@ -149,9 +149,11 @@
+ 	 * follow the sequence one by one, otherwise one of them can not be
+ 	 * powered on successfully, so here we disable the async suspend
+ 	 * method for these chips.
+ 	 */
+-	if (pdev->vendor == PCI_VENDOR_ID_JMICRON)
++	if (pdev->vendor == PCI_VENDOR_ID_JMICRON &&
++		(pdev->device == PCI_DEVICE_ID_JMICRON_JMB363 ||
++		pdev->device == PCI_DEVICE_ID_JMICRON_JMB361))
+ 		device_disable_async_suspend(&pdev->dev);
+ 
+ 	return ata_pci_bmdma_init_one(pdev, ppi, &jmicron_sht, NULL, 0);
+ }
+diff -iwBEr -U 4 linux-3.18.7-gnunew/drivers/hv/hv.c linux-3.18.7-gnupclos/drivers/hv/hv.c
+--- linux-3.18.7-gnunew/drivers/hv/hv.c	2015-03-01 13:08:52.899890995 +0000
++++ linux-3.18.7-gnupclos/drivers/hv/hv.c	2014-12-07 22:21:05.000000000 +0000
+@@ -133,10 +133,8 @@
+ {
+ 	int max_leaf;
+ 	union hv_x64_msr_hypercall_contents hypercall_msr;
+ 	void *virtaddr = NULL;
+-	__u8 d1 = 0x10; /* SuSE */
+-	__u16 d2 = 0x0; /* -d of a.b.c-d */
+ 
+ 	memset(hv_context.synic_event_page, 0, sizeof(void *) * NR_CPUS);
+ 	memset(hv_context.synic_message_page, 0,
+ 	       sizeof(void *) * NR_CPUS);
+@@ -151,9 +149,9 @@
+ 
+ 	/*
+ 	 * Write our OS ID.
+ 	 */
+-	hv_context.guestid = generate_guest_id(d1, LINUX_VERSION_CODE, d2);
++	hv_context.guestid = generate_guest_id(0, LINUX_VERSION_CODE, 0);
+ 	wrmsrl(HV_X64_MSR_GUEST_OS_ID, hv_context.guestid);
+ 
+ 	/* See if the hypercall page is already set */
+ 	rdmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
+diff -iwBEr -U 4 linux-3.18.7-gnunew/drivers/input/serio/i8042-x86ia64io.h linux-3.18.7-gnupclos/drivers/input/serio/i8042-x86ia64io.h
+--- linux-3.18.7-gnunew/drivers/input/serio/i8042-x86ia64io.h	2015-03-01 13:08:52.671891012 +0000
++++ linux-3.18.7-gnupclos/drivers/input/serio/i8042-x86ia64io.h	2015-03-01 13:02:21.667919941 +0000
+@@ -675,8 +675,24 @@
+ 			DMI_MATCH(DMI_PRODUCT_NAME, "LIFEBOOK AH544"),
+ 		},
+ 	},
+ 	{
++		/* Fujitsu A544 laptop */
++		/* https://bugzilla.redhat.com/show_bug.cgi?id=1111138 */
++		.matches = {
++			DMI_MATCH(DMI_SYS_VENDOR, "FUJITSU"),
++			DMI_MATCH(DMI_PRODUCT_NAME, "LIFEBOOK A544"),
++		},
++	},
++	{
++		/* Fujitsu AH544 laptop */
++		/* https://bugzilla.kernel.org/show_bug.cgi?id=69731 */
++		.matches = {
++			DMI_MATCH(DMI_SYS_VENDOR, "FUJITSU"),
++			DMI_MATCH(DMI_PRODUCT_NAME, "LIFEBOOK AH544"),
++		},
++	},
++	{
+ 		/* Fujitsu U574 laptop */
+ 		/* https://bugzilla.kernel.org/show_bug.cgi?id=69731 */
+ 		.matches = {
+ 			DMI_MATCH(DMI_SYS_VENDOR, "FUJITSU"),
+diff -iwBEr -U 4 linux-3.18.7-gnunew/drivers/platform/x86/asus-nb-wmi.c linux-3.18.7-gnupclos/drivers/platform/x86/asus-nb-wmi.c
+--- linux-3.18.7-gnunew/drivers/platform/x86/asus-nb-wmi.c	2015-03-01 13:08:51.843891073 +0000
++++ linux-3.18.7-gnupclos/drivers/platform/x86/asus-nb-wmi.c	2015-03-01 13:02:21.664919941 +0000
+@@ -199,8 +199,17 @@
+ 		.driver_data = &quirk_asus_wapf4,
+ 	},
+ 	{
+ 		.callback = dmi_matched,
++		.ident = "ASUSTeK COMPUTER INC. X550VB",
++		.matches = {
++			DMI_MATCH(DMI_SYS_VENDOR, "ASUSTeK COMPUTER INC."),
++			DMI_MATCH(DMI_PRODUCT_NAME, "X550VB"),
++		},
++		.driver_data = &quirk_asus_wapf4,
++	},
++	{
++		.callback = dmi_matched,
+ 		.ident = "ASUSTeK COMPUTER INC. X55A",
+ 		.matches = {
+ 			DMI_MATCH(DMI_SYS_VENDOR, "ASUSTeK COMPUTER INC."),
+ 			DMI_MATCH(DMI_PRODUCT_NAME, "X55A"),
+diff -iwBEr -U 4 linux-3.18.7-gnunew/drivers/staging/lustre/lustre/llite/lloop.c linux-3.18.7-gnupclos/drivers/staging/lustre/lustre/llite/lloop.c
+--- linux-3.18.7-gnunew/drivers/staging/lustre/lustre/llite/lloop.c	2015-03-01 13:08:52.919890994 +0000
++++ linux-3.18.7-gnupclos/drivers/staging/lustre/lustre/llite/lloop.c	2014-12-07 22:21:05.000000000 +0000
+@@ -521,8 +521,11 @@
+ 	blk_queue_make_request(lo->lo_queue, loop_make_request);
+ 	lo->lo_queue->queuedata = lo;
+ 
+ 	/* queue parameters */
++	CLASSERT(PAGE_CACHE_SIZE < (1 << (sizeof(unsigned short) * 8)));
++	blk_queue_logical_block_size(lo->lo_queue,
++				     (unsigned short)PAGE_CACHE_SIZE);
+ 	blk_queue_max_hw_sectors(lo->lo_queue,
+ 				 LLOOP_MAX_SEGMENTS << (PAGE_CACHE_SHIFT - 9));
+ 	blk_queue_max_segments(lo->lo_queue, LLOOP_MAX_SEGMENTS);
+ 
+diff -iwBEr -U 4 linux-3.18.7-gnunew/include/linux/hid.h linux-3.18.7-gnupclos/include/linux/hid.h
+--- linux-3.18.7-gnunew/include/linux/hid.h	2014-12-07 22:21:05.000000000 +0000
++++ linux-3.18.7-gnupclos/include/linux/hid.h	2015-03-01 13:00:36.172927746 +0000
+@@ -340,9 +340,9 @@
+ /*
+  * This is the local environment. It is persistent up the next main-item.
+  */
+ 
+-#define HID_MAX_USAGES			12288
++#define HID_MAX_USAGES			33792
+ #define HID_DEFAULT_NUM_COLLECTIONS	16
+ 
+ struct hid_local {
+ 	unsigned usage[HID_MAX_USAGES]; /* usage array */
+diff -iwBEr -U 4 linux-3.18.7-gnunew/net/ethernet/eth.c linux-3.18.7-gnupclos/net/ethernet/eth.c
+--- linux-3.18.7-gnunew/net/ethernet/eth.c	2015-03-01 13:08:52.473891027 +0000
++++ linux-3.18.7-gnupclos/net/ethernet/eth.c	2014-12-07 22:21:05.000000000 +0000
+@@ -386,9 +386,9 @@
+ 	dev->type		= ARPHRD_ETHER;
+ 	dev->hard_header_len 	= ETH_HLEN;
+ 	dev->mtu		= ETH_DATA_LEN;
+ 	dev->addr_len		= ETH_ALEN;
+-	dev->tx_queue_len	= 50;	/* Ethernet wants good latency.  Use FreeBSD defaults. */
++	dev->tx_queue_len	= 2048;	/* Ethernet wants good queues */
+ 	dev->flags		= IFF_BROADCAST|IFF_MULTICAST;
+ 	dev->priv_flags		|= IFF_TX_SKB_SHARING;
+ 
+ 	memset(dev->broadcast, 0xFF, ETH_ALEN);

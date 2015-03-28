@@ -3,15 +3,17 @@
 
 Find here the patches for the YaIniT 3.18 Kernel
 
-The latest release is 3.18.9 
-Please see the folder  ../libre-3.18-gnu for the patchset, which
-includes modified patches from the following distributions or non-standard suppliers:
+The latest respected release is 3.18.10
 
-patch-3.18-gnu-3.18.9-gnu (original as of ftp.linux.org.tr)
+Please apply the "deblob-3.18" bash-script to establish GNU Licensing,
+apply the patches in the this diretory or 
+get the original from ftp.linux.org.tr or mirror.
+
+
 YAINIT (my patches, better adaption for GCC compilations and all logos)
 MAGEIA (incl. AUFS)
 GENTOO  (no PAX, no GRSECURITY)
-OpenSuSE (here without XEN)
+OpenSuSE (here also without XEN)
 PCLinuxOS (some ports and corrections)
 ZEN  (the Liquorix patch , AUFS, BFQ, BFS and other specialities)
 BLD  (who absolutely wants to know it)
@@ -20,9 +22,8 @@ MPTCP (Multipath TCP patch, allows better multi-connection management,
        port knocking and better intruder exclusion)
 UKSM  (the Universalized Kernel Same page Merging)
 
-Another patchset includes the original ubuntu patch at Version 3.18.7-14.15
-in the folder ./patches-3.18.7-ubuntu14.15-test 
-Caution: This a test set and contains published patches from distributors. No Warranty! 
+
+Caution: This a test set and contains published patches from distributors. Nothing guaranteed! 
 
 
 ANNOTATIONS:

@@ -2,9 +2,8 @@
 =====================================================
 
 Please see explanations and informations for 
-the 3.18 kernel as of Linux Foundation. 
+the 3.18 kernel as of Linux Foundation in the 3.18/  folder. 
 
-For reasons of Licence for Publication, all made 
-available patches by me are in this folder.
-
+Run the "deblob-3.18" bash-script to establish GNU License conformity
+or apply the provided patch below.
 

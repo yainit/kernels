@@ -1,0 +1,14 @@
+diff -uNr a/Makefile b/Makefile
+--- a/Makefile	2014-11-17 09:48:07.964034061 +0000
++++ b/Makefile	2014-11-17 09:47:31.977036601 +0000
+@@ -1,8 +1,8 @@
+ VERSION = 3
+ PATCHLEVEL = 18
+ SUBLEVEL = 10
+-EXTRAVERSION =
+-NAME = Diseased Newt
++EXTRAVERSION = .yainitu14_15all
++NAME = YaIniT with Gentoo MPTCP UKSM VIVID14.15 ZEN Mageia OpenSuSE BFQ BLD 
+ 
+ # *DOCUMENTATION*
+ # To see a list of typical targets execute "make help"
