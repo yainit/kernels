@@ -1,0 +1,427 @@
+diff -iwBEr -U 4 linux-3.16.7-all/drivers/gpu/drm/drm_crtc_helper.c linux-3.16.7-uall/drivers/gpu/drm/drm_crtc_helper.c
+--- linux-3.16.7-all/drivers/gpu/drm/drm_crtc_helper.c	2014-08-03 22:25:02.000000000 +0000
++++ linux-3.16.7-uall/drivers/gpu/drm/drm_crtc_helper.c	2015-04-05 18:19:37.460179123 +0000
+@@ -559,15 +559,14 @@
+ 				   we are setting now - then fail */
+ 				if (new_encoder == NULL)
+ 					/* don't break so fail path works correct */
+ 					fail = 1;
++				break;
+ 
+ 				if (connector->dpms != DRM_MODE_DPMS_ON) {
+ 					DRM_DEBUG_KMS("connector dpms not on, full mode switch\n");
+ 					mode_changed = true;
+ 				}
+-
+-				break;
+ 			}
+ 		}
+ 
+ 		if (new_encoder != connector->encoder) {
+diff -iwBEr -U 4 linux-3.16.7-all/drivers/gpu/drm/drm_dp_helper.c linux-3.16.7-uall/drivers/gpu/drm/drm_dp_helper.c
+--- linux-3.16.7-all/drivers/gpu/drm/drm_dp_helper.c	2014-08-03 22:25:02.000000000 +0000
++++ linux-3.16.7-uall/drivers/gpu/drm/drm_dp_helper.c	2015-04-05 18:19:37.460179123 +0000
+@@ -377,12 +377,13 @@
+ 	msg.size = size;
+ 
+ 	/*
+ 	 * The specification doesn't give any recommendation on how often to
+-	 * retry native transactions, so retry 7 times like for I2C-over-AUX
+-	 * transactions.
++	 * retry native transactions. We used to retry 7 times like for
++	 * aux i2c transactions but real world devices this wasn't
++	 * sufficient, bump to 32 which makes Dell 4k monitors happier.
+ 	 */
+-	for (retry = 0; retry < 7; retry++) {
++	for (retry = 0; retry < 32; retry++) {
+ 
+ 		mutex_lock(&aux->hw_mutex);
+ 		err = aux->transfer(aux, &msg);
+ 		mutex_unlock(&aux->hw_mutex);
+diff -iwBEr -U 4 linux-3.16.7-all/arch/x86/kernel/entry_64.S linux-3.16.7-uall/arch/x86/kernel/entry_64.S
+--- linux-3.16.7-all/arch/x86/kernel/entry_64.S	2015-04-05 16:53:30.685392277 +0000
++++ linux-3.16.7-uall/arch/x86/kernel/entry_64.S	2015-04-05 18:19:37.938179103 +0000
+@@ -1409,9 +1409,8 @@
+  * truncated RIP for IRET exceptions returning to compat mode. Check
+  * for these here too.
+  */
+ error_kernelspace:
+-	CFI_REL_OFFSET rcx, RCX+8
+ 	incl %ebx
+ 	leaq native_irq_return_iret(%rip),%rcx
+ 	cmpq %rcx,RIP+8(%rsp)
+ 	je error_bad_iret
+diff -iwBEr -U 4 linux-3.16.7-all/drivers/gpu/drm/i915/i915_irq.c linux-3.16.7-uall/drivers/gpu/drm/i915/i915_irq.c
+--- linux-3.16.7-all/drivers/gpu/drm/i915/i915_irq.c	2015-04-05 16:53:30.988392264 +0000
++++ linux-3.16.7-uall/drivers/gpu/drm/i915/i915_irq.c	2015-04-05 18:19:38.097179097 +0000
+@@ -3715,9 +3715,9 @@
+ 	if (dev_priv->display_irqs_enabled)
+ 		valleyview_display_irqs_uninstall(dev_priv);
+ 	spin_unlock_irqrestore(&dev_priv->irq_lock, irqflags);
+ 
+-	dev_priv->irq_mask = 0;
++	dev_priv->irq_mask = ~0;
+ 
+ 	I915_WRITE(VLV_IIR, 0xffffffff);
+ 	I915_WRITE(VLV_IMR, 0xffffffff);
+ 	I915_WRITE(VLV_IER, 0x0);
+diff -iwBEr -U 4 linux-3.16.7-uall/drivers/net/fddi/skfp/h/skfbi.h linux-3.16.7-allu34.45/drivers/net/fddi/skfp/h/skfbi.h
+--- linux-3.16.7-uall/drivers/net/fddi/skfp/h/skfbi.h	2015-04-05 18:19:37.952179103 +0000
++++ linux-3.16.7-allu34.45/drivers/net/fddi/skfp/h/skfbi.h	2014-08-03 22:25:02.000000000 +0000
+@@ -146,8 +146,13 @@
+ #define	PCI_MEM1M	(1<<1)	     /* Base addr below 1 MegaByte */
+ #define	PCI_MEM64BIT	(2<<1)	     /* Base addr anywhere in 64 Bit range */
+ #define	PCI_MEMSPACE	0x00000001L  /* Bit 0:	Memory Space Indic. */
+ 
++/*	PCI_BASE_2ND	32 bit	2nd Base address */
++#define	PCI_IOBASE	0xffffff00L  /* Bit 31..8:  I/O Base address */
++#define	PCI_IOSIZE	0x000000fcL  /* Bit 7..2:   I/O Size Requirements */
++#define	PCI_IOSPACE	0x00000001L  /* Bit 0:	    I/O Space Indicator */
++
+ /*	PCI_SUB_VID	16 bit	Subsystem Vendor ID */
+ /*	PCI_SUB_ID	16 bit	Subsystem ID */
+ 
+ /*	PCI_BASE_ROM	32 bit	Expansion ROM Base Address */
+diff -iwBEr -U 4 linux-3.16.7-uall/drivers/tty/tty_io.c linux-3.16.7-allu34.45/drivers/tty/tty_io.c
+--- linux-3.16.7-uall/drivers/tty/tty_io.c	2015-04-05 18:19:37.635179116 +0000
++++ linux-3.16.7-allu34.45/drivers/tty/tty_io.c	2015-04-05 18:21:02.627175609 +0000
+@@ -136,8 +136,12 @@
+ 
+ /* Spinlock to protect the tty->tty_files list */
+ DEFINE_SPINLOCK(tty_files_lock);
+ 
++#ifndef console_use_vt
++int console_use_vt = 1;
++#endif
++
+ static ssize_t tty_read(struct file *, char __user *, size_t, loff_t *);
+ static ssize_t tty_write(struct file *, const char __user *, size_t, loff_t *);
+ ssize_t redirected_tty_write(struct file *, const char __user *,
+ 							size_t, loff_t *);
+@@ -1944,8 +1948,12 @@
+ 	switch (device) {
+ #ifdef CONFIG_VT
+ 	case MKDEV(TTY_MAJOR, 0): {
+ 		extern struct tty_driver *console_driver;
++
++		if (!console_use_vt)
++			return get_tty_driver(device, index)
++			       ?: ERR_PTR(-ENODEV);
+ 		driver = tty_driver_kref_get(console_driver);
+ 		*index = fg_console;
+ 		*noctty = 1;
+ 		break;
+@@ -3605,8 +3613,9 @@
+ 	else
+ 		WARN_ON(device_create_file(consdev, &dev_attr_active) < 0);
+ 
+ #ifdef CONFIG_VT
++	if (console_use_vt)
+ 	vty_init(&console_fops);
+ #endif
+ 	return 0;
+ }
+diff -iwBEr -U 4 linux-3.16.7-uall/drivers/usb/chipidea/Kconfig linux-3.16.7-allu34.45/drivers/usb/chipidea/Kconfig
+--- linux-3.16.7-uall/drivers/usb/chipidea/Kconfig	2014-08-03 22:25:02.000000000 +0000
++++ linux-3.16.7-allu34.45/drivers/usb/chipidea/Kconfig	2015-04-05 18:21:02.627175609 +0000
+@@ -29,5 +29,16 @@
+ 	bool "ChipIdea driver debug"
+ 	help
+ 	  Say Y here to enable debugging output of the ChipIdea driver.
+ 
++config USB_CHIPIDEA_PCI
++	bool "ChipIdea PCI support"
++	depends on PCI
++	help
++	  This option enables ChipIdea support on PCI.
++
++config USB_CHIPIDEA_IMX
++	bool "ChipIdea IMX support"
++	depends on OF
++	help
++	  This option enables ChipIdea support on IMX.
+ endif
+diff -iwBEr -U 4 linux-3.16.7-uall/drivers/usb/chipidea/Makefile linux-3.16.7-allu34.45/drivers/usb/chipidea/Makefile
+--- linux-3.16.7-uall/drivers/usb/chipidea/Makefile	2014-08-03 22:25:02.000000000 +0000
++++ linux-3.16.7-allu34.45/drivers/usb/chipidea/Makefile	2015-04-05 18:21:02.627175609 +0000
+@@ -11,13 +11,6 @@
+ # Glue/Bridge layers go here
+ 
+ obj-$(CONFIG_USB_CHIPIDEA)	+= ci_hdrc_msm.o
+ obj-$(CONFIG_USB_CHIPIDEA)	+= ci_hdrc_zevio.o
+-
+-# PCI doesn't provide stubs, need to check
+-ifneq ($(CONFIG_PCI),)
+-	obj-$(CONFIG_USB_CHIPIDEA)	+= ci_hdrc_pci.o
+-endif
+-
+-ifneq ($(CONFIG_OF),)
+-	obj-$(CONFIG_USB_CHIPIDEA)	+= usbmisc_imx.o ci_hdrc_imx.o
+-endif
++obj-$(CONFIG_USB_CHIPIDEA_PCI)	+= ci_hdrc_pci.o
++obj-$(CONFIG_USB_CHIPIDEA_IMX)	+= usbmisc_imx.o ci_hdrc_imx.o
+diff -iwBEr -U 4 linux-3.16.7-all/drivers/usb/core/quirks.c linux-3.16.7-allu34.45/drivers/usb/core/quirks.c
+--- linux-3.16.7-all/drivers/usb/core/quirks.c	2015-04-05 16:53:31.342392250 +0000
++++ linux-3.16.7-allu34.45/drivers/usb/core/quirks.c	2015-04-05 18:21:02.943175596 +0000
+@@ -99,29 +99,29 @@
+ 	/* Elan Touchscreen */
+ 	{ USB_DEVICE(0x04f3, 0x0089), .driver_info =
+ 			USB_QUIRK_DEVICE_QUALIFIER },
+ 
+-	/* Elan Touchscreen */
+-	{ USB_DEVICE(0x04f3, 0x016f), .driver_info =
+-			USB_QUIRK_DEVICE_QUALIFIER },
+-
+-	/* Elan Touchscreen */
+ 	{ USB_DEVICE(0x04f3, 0x009b), .driver_info =
+ 			USB_QUIRK_DEVICE_QUALIFIER },
+ 
+-	/* Elan Touchscreen */
+-	{ USB_DEVICE(0x04f3, 0x0089), .driver_info =
++	{ USB_DEVICE(0x04f3, 0x010c), .driver_info =
+ 			USB_QUIRK_DEVICE_QUALIFIER },
+ 
+-	{ USB_DEVICE(0x04f3, 0x009b), .driver_info =
++	{ USB_DEVICE(0x04f3, 0x016f), .driver_info =
+ 			USB_QUIRK_DEVICE_QUALIFIER },
+ 
+-	{ USB_DEVICE(0x04f3, 0x010c), .driver_info =
++	/* Elan Touchscreen */
++	{ USB_DEVICE(0x04f3, 0x0089), .driver_info =
+ 			USB_QUIRK_DEVICE_QUALIFIER },
+ 
++	/* Elan Touchscreen */
+ 	{ USB_DEVICE(0x04f3, 0x016f), .driver_info =
+ 			USB_QUIRK_DEVICE_QUALIFIER },
+ 
++	/* Elan Touchscreen */
++	{ USB_DEVICE(0x04f3, 0x009b), .driver_info =
++			USB_QUIRK_DEVICE_QUALIFIER },
++
+ 	/* Roland SC-8820 */
+ 	{ USB_DEVICE(0x0582, 0x0007), .driver_info = USB_QUIRK_RESET_RESUME },
+ 
+ 	/* Edirol SD-20 */
+diff -iwBEr -U 4 linux-3.16.7-uall/fs/aio.c linux-3.16.7-allu34.45/fs/aio.c
+--- linux-3.16.7-uall/fs/aio.c	2015-04-05 18:19:37.709179113 +0000
++++ linux-3.16.7-allu34.45/fs/aio.c	2015-04-05 18:21:02.685175607 +0000
+@@ -43,8 +43,13 @@
+ 
+ #include <asm/kmap_types.h>
+ #include <asm/uaccess.h>
+ 
++#ifdef CONFIG_EPOLL
++#include <linux/poll.h>
++#include <linux/anon_inodes.h>
++#endif
++
+ #include "internal.h"
+ 
+ #define AIO_RING_MAGIC			0xa10a10a1
+ #define AIO_RING_COMPAT_FEATURES	1
+@@ -116,8 +121,14 @@
+ 	 * signals when all in-flight requests are done
+ 	 */
+ 	struct completion *requests_done;
+ 
++#ifdef CONFIG_EPOLL
++	/* poll integration */
++	wait_queue_head_t       poll_wait;
++	struct file		*file;
++#endif
++
+ 	struct {
+ 		/*
+ 		 * This counts the number of available slots in the ringbuffer,
+ 		 * so we avoid overflowing it: it's decremented (if positive)
+@@ -755,8 +766,17 @@
+ 
+ 	/* percpu_ref_kill() will do the necessary call_rcu() */
+ 	wake_up_all(&ctx->wait);
+ 
++#ifdef CONFIG_EPOLL
++	/* forget the poll file, but it's up to the user to close it */
++	if (ctx->file) {
++		fput(ctx->file);
++		ctx->file->private_data = 0;
++		ctx->file = 0;
++	}
++#endif
++
+ 	/*
+ 	 * It'd be more correct to do this in free_ioctx(), after all
+ 	 * the outstanding kiocbs have finished - but by then io_destroy
+ 	 * has already returned, so io_setup() could potentially return
+@@ -1122,15 +1142,22 @@
+ 
+ 	if (waitqueue_active(&ctx->wait))
+ 		wake_up(&ctx->wait);
+ 
++#ifdef CONFIG_EPOLL
++	if (ctx->file && waitqueue_active(&ctx->poll_wait))
++		wake_up(&ctx->poll_wait);
++#endif
++
+ 	percpu_ref_put(&ctx->reqs);
+ }
+ EXPORT_SYMBOL(aio_complete);
+ 
+ /* aio_read_events
+  *	Pull an event off of the ioctx's event ring.  Returns the number of
+  *	events fetched
++ *	If event parameter is NULL, just returns the number of events that
++ *	would be fetched.
+  */
+ static long aio_read_events_ring(struct kioctx *ctx,
+ 				 struct io_event __user *event, long nr)
+ {
+@@ -1173,8 +1200,15 @@
+ 		avail = min(avail, nr - ret);
+ 		avail = min_t(long, avail, AIO_EVENTS_PER_PAGE -
+ 			    ((head + AIO_EVENTS_OFFSET) % AIO_EVENTS_PER_PAGE));
+ 
++#ifdef CONFIG_EPOLL
++		if (!event) { /* only need to know availability */
++			ret = avail;
++			goto out;
++		}
++#endif
++
+ 		pos = head + AIO_EVENTS_OFFSET;
+ 		page = ctx->ring_pages[pos / AIO_EVENTS_PER_PAGE];
+ 		pos %= AIO_EVENTS_PER_PAGE;
+ 
+@@ -1228,8 +1262,13 @@
+ {
+ 	ktime_t until = { .tv64 = KTIME_MAX };
+ 	long ret = 0;
+ 
++#ifdef CONFIG_EPOLL
++	if (!event && nr)
++		return -EFAULT;
++#endif
++
+ 	if (timeout) {
+ 		struct timespec	ts;
+ 
+ 		if (unlikely(copy_from_user(&ts, timeout, sizeof(ts))))
+@@ -1260,8 +1299,71 @@
+ 
+ 	return ret;
+ }
+ 
++#ifdef CONFIG_EPOLL
++
++static int aio_queue_fd_close(struct inode *inode, struct file *file)
++{
++	struct kioctx *ioctx = file->private_data;
++	if (ioctx) {
++		file->private_data = 0;
++		spin_lock_irq(&ioctx->ctx_lock);
++		ioctx->file = 0;
++		spin_unlock_irq(&ioctx->ctx_lock);
++		fput(file);
++	}
++	return 0;
++}
++
++static unsigned int aio_queue_fd_poll(struct file *file, poll_table *wait)
++{	unsigned int pollflags = 0;
++	struct kioctx *ioctx = file->private_data;
++
++	if (ioctx) {
++		/* Insert inside our poll wait queue */
++		spin_lock_irq(&ioctx->ctx_lock);
++		poll_wait(file, &ioctx->poll_wait, wait);
++		spin_unlock_irq(&ioctx->ctx_lock);
++
++		/* Check our condition */
++		if (aio_read_events_ring(ioctx, NULL, 1))
++			pollflags = POLLIN | POLLRDNORM;
++	}
++
++	return pollflags;
++}
++
++static const struct file_operations aioq_fops = {
++	.release	= aio_queue_fd_close,
++	.poll		= aio_queue_fd_poll
++};
++
++/* make_aio_fd:
++ *  Create a file descriptor that can be used to poll the event queue.
++ *  Based on the excellent epoll code.
++ */
++
++static int make_aio_fd(struct kioctx *ioctx)
++{
++	int fd;
++	struct file *file;
++
++	fd = anon_inode_getfd("[aioq]", &aioq_fops, ioctx, 0);
++	if (fd < 0)
++		return fd;
++
++	/* associate the file with the IO context */
++	file = fget(fd);
++	if (!file)
++		return -EBADF;
++	file->private_data = ioctx;
++	ioctx->file = file;
++	init_waitqueue_head(&ioctx->poll_wait);
++	return fd;
++}
++#endif
++
+ /* sys_io_setup:
+  *	Create an aio_context capable of receiving at least nr_events.
+  *	ctxp must not point to an aio_context that already exists, and
+  *	must be initialized to 0 prior to the call.  On successful
+@@ -1272,20 +1374,32 @@
+  *	of available events.  May fail with -ENOMEM if insufficient kernel
+  *	resources are available.  May fail with -EFAULT if an invalid
+  *	pointer is passed for ctxp.  Will fail with -ENOSYS if not
+  *	implemented.
++ *
++ *	To request a selectable fd, the user context has to be initialized
++ *	to 1, instead of 0, and the return value is the fd.
++ *	This keeps the system call compatible, since a non-zero value
++ *	was not allowed so far.
+  */
+ SYSCALL_DEFINE2(io_setup, unsigned, nr_events, aio_context_t __user *, ctxp)
+ {
+ 	struct kioctx *ioctx = NULL;
+ 	unsigned long ctx;
+ 	long ret;
++	int make_fd = 0;
+ 
+ 	ret = get_user(ctx, ctxp);
+ 	if (unlikely(ret))
+ 		goto out;
+ 
+ 	ret = -EINVAL;
++#ifdef CONFIG_EPOLL
++	if (ctx == 1) {
++		make_fd = 1;
++		ctx = 0;
++	}
++#endif
+ 	if (unlikely(ctx || nr_events == 0)) {
+ 		pr_debug("EINVAL: io_setup: ctx %lu nr_events %u\n",
+ 		         ctx, nr_events);
+ 		goto out;
+@@ -1294,9 +1408,13 @@
+ 	ioctx = ioctx_alloc(nr_events);
+ 	ret = PTR_ERR(ioctx);
+ 	if (!IS_ERR(ioctx)) {
+ 		ret = put_user(ioctx->user_id, ctxp);
+-		if (ret)
++#ifdef CONFIG_EPOLL
++		if (make_fd && !ret)
++			ret = make_aio_fd(ioctx);
++#endif
++		if (ret < 0)
+ 			kill_ioctx(current->mm, ioctx, NULL);
+ 		percpu_ref_put(&ioctx->users);
+ 	}
+ 
