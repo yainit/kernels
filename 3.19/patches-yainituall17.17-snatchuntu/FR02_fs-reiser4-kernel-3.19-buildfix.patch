@@ -1,0 +1,355 @@
+
+reiser4 buildfixes for kernel 3.19
+
+in struct file, the f_dentry has changed to f_path.dentry
+
+Signed-off-by: Thomas Backlund <tmb@mageia.org>
+
+
+ fs/read_write.c                          |    4 ++--
+ fs/reiser4/fsdata.c                      |   10 +++++-----
+ fs/reiser4/plugin/dir_plugin_common.c    |    2 +-
+ fs/reiser4/plugin/file/cryptcompress.c   |    6 +++---
+ fs/reiser4/plugin/file/file.c            |   28 ++++++++++++++--------------
+ fs/reiser4/plugin/file/file_conversion.c |   12 ++++++------
+ fs/reiser4/plugin/file_ops_readdir.c     |   10 +++++-----
+ fs/reiser4/plugin/item/ctail.c           |    2 +-
+ fs/reiser4/plugin/item/extent_file_ops.c |    2 +-
+ 9 files changed, 38 insertions(+), 38 deletions(-)
+
+--- linux/fs/read_write.c.orig	2015-03-30 02:33:26.000000000 +0300
++++ linux/fs/read_write.c	2015-03-30 11:38:13.119779273 +0300
+@@ -254,9 +254,9 @@ loff_t default_llseek(struct file *file,
+ {
+ 	loff_t retval;
+ 
+-	mutex_lock(&file->f_dentry->d_inode->i_mutex);
++	mutex_lock(&file->f_path.dentry->d_inode->i_mutex);
+ 	retval = default_llseek_unlocked(file, offset, origin);
+-	mutex_unlock(&file->f_dentry->d_inode->i_mutex);
++	mutex_unlock(&file->f_path.dentry->d_inode->i_mutex);
+ 	return retval;
+ }
+ EXPORT_SYMBOL(default_llseek);
+--- linux/fs/reiser4/fsdata.c.orig	2015-03-30 02:33:26.000000000 +0300
++++ linux/fs/reiser4/fsdata.c	2015-03-30 11:09:29.033829686 +0300
+@@ -489,7 +489,7 @@ void reiser4_kill_cursors(struct inode *
+  */
+ static int file_is_stateless(struct file *file)
+ {
+-	return reiser4_get_dentry_fsdata(file->f_dentry)->stateless;
++	return reiser4_get_dentry_fsdata(file->f_path.dentry)->stateless;
+ }
+ 
+ /**
+@@ -585,7 +585,7 @@ void reiser4_detach_fsdata(struct file *
+ 	if (!file_is_stateless(file))
+ 		return;
+ 
+-	inode = file->f_dentry->d_inode;
++	inode = file->f_path.dentry->d_inode;
+ 	spin_lock_inode(inode);
+ 	clean_fsdata(file);
+ 	spin_unlock_inode(inode);
+@@ -741,7 +741,7 @@ reiser4_file_fsdata *reiser4_get_file_fs
+ 		if (fsdata == NULL)
+ 			return ERR_PTR(RETERR(-ENOMEM));
+ 
+-		inode = file->f_dentry->d_inode;
++		inode = file->f_path.dentry->d_inode;
+ 		spin_lock_inode(inode);
+ 		if (file->private_data == NULL) {
+ 			file->private_data = fsdata;
+@@ -785,9 +785,9 @@ static void free_file_fsdata_nolock(stru
+  */
+ void reiser4_free_file_fsdata(struct file *file)
+ {
+-	spin_lock_inode(file->f_dentry->d_inode);
++	spin_lock_inode(file->f_path.dentry->d_inode);
+ 	free_file_fsdata_nolock(file);
+-	spin_unlock_inode(file->f_dentry->d_inode);
++	spin_unlock_inode(file->f_path.dentry->d_inode);
+ }
+ 
+ /*
+--- linux/fs/reiser4/plugin/file_ops_readdir.c.orig	2015-03-30 02:33:26.000000000 +0300
++++ linux/fs/reiser4/plugin/file_ops_readdir.c	2015-03-30 11:11:46.005087812 +0300
+@@ -136,7 +136,7 @@ static int dir_go_to(struct file *dir, s
+ 
+ 	assert("nikita-2554", pos != NULL);
+ 
+-	inode = dir->f_dentry->d_inode;
++	inode = dir->f_path.dentry->d_inode;
+ 	result = inode_dir_plugin(inode)->build_readdir_key(dir, &key);
+ 	if (result != 0)
+ 		return result;
+@@ -232,7 +232,7 @@ static int dir_rewind(struct file *dir,
+ 	 * to */
+ 	destination = pos->entry_no + shift;
+ 
+-	inode = dir->f_dentry->d_inode;
++	inode = dir->f_path.dentry->d_inode;
+ 	if (dirpos < 0)
+ 		return RETERR(-EINVAL);
+ 	else if (destination == 0ll || dirpos == 0) {
+@@ -442,7 +442,7 @@ static int dir_readdir_init(struct file
+ 	int result;
+ 
+ 	assert("nikita-1359", f != NULL);
+-	inode = f->f_dentry->d_inode;
++	inode = f->f_path.dentry->d_inode;
+ 	assert("nikita-1360", inode != NULL);
+ 
+ 	if (!S_ISDIR(inode->i_mode))
+@@ -481,7 +481,7 @@ loff_t reiser4_llseek_dir_common(struct
+ 	loff_t result;
+ 	struct inode *inode;
+ 
+-	inode = file->f_dentry->d_inode;
++	inode = file->f_path.dentry->d_inode;
+ 
+ 	ctx = reiser4_init_context(inode->i_sb);
+ 	if (IS_ERR(ctx))
+@@ -570,7 +570,7 @@ int reiser4_iterate_common(struct file *
+ 	struct readdir_pos *pos;
+ 
+ 	assert("nikita-1359", f != NULL);
+-	inode = f->f_dentry->d_inode;
++	inode = f->f_path.dentry->d_inode;
+ 	assert("nikita-1360", inode != NULL);
+ 
+ 	if (!S_ISDIR(inode->i_mode))
+--- linux/fs/reiser4/plugin/dir_plugin_common.c.orig	2015-03-30 02:33:26.000000000 +0300
++++ linux/fs/reiser4/plugin/dir_plugin_common.c	2015-03-30 11:28:09.164165967 +0300
+@@ -97,7 +97,7 @@ int build_readdir_key_common(struct file
+ 	assert("nikita-1361", dir != NULL);
+ 	assert("nikita-1362", result != NULL);
+ 	assert("nikita-1363", dir->f_dentry != NULL);
+-	inode = dir->f_dentry->d_inode;
++	inode = dir->f_path.dentry->d_inode;
+ 	assert("nikita-1373", inode != NULL);
+ 
+ 	fdata = reiser4_get_file_fsdata(dir);
+--- linux/fs/reiser4/plugin/item/extent_file_ops.c.orig	2015-03-30 02:33:26.000000000 +0300
++++ linux/fs/reiser4/plugin/item/extent_file_ops.c	2015-03-30 11:30:41.565579809 +0300
+@@ -1224,7 +1224,7 @@ int reiser4_read_extent(struct file *fil
+ 	assert("vs-1120", znode_is_loaded(coord->node));
+ 	assert("vs-1256", coord_matches_key_extent(coord, &flow->key));
+ 
+-	mapping = file->f_dentry->d_inode->i_mapping;
++	mapping = file->f_path.dentry->d_inode->i_mapping;
+ 	ext_coord = &uf_coord->extension.extent;
+ 
+ 	file_off = get_key_offset(&flow->key);
+--- linux/fs/reiser4/plugin/item/ctail.c.orig	2015-03-30 02:33:26.000000000 +0300
++++ linux/fs/reiser4/plugin/item/ctail.c	2015-03-30 11:29:12.104749513 +0300
+@@ -811,7 +811,7 @@ static int ctail_readpages_filler(void *
+ {
+ 	int ret = 0;
+ 	struct cluster_handle * clust = data;
+-	struct inode * inode = clust->file->f_dentry->d_inode;
++	struct inode * inode = clust->file->f_path.dentry->d_inode;
+ 
+ 	assert("edward-1525", page->mapping == inode->i_mapping);
+ 
+--- linux/fs/reiser4/plugin/file/cryptcompress.c.orig	2015-03-30 02:33:26.000000000 +0300
++++ linux/fs/reiser4/plugin/file/cryptcompress.c	2015-03-30 11:26:40.333342060 +0300
+@@ -2869,7 +2869,7 @@ ssize_t write_cryptcompress(struct file
+ 
+   	assert("edward-1449", cont->state == DISPATCH_INVAL_STATE);
+ 
+-	inode = file->f_dentry->d_inode;
++	inode = file->f_path.dentry->d_inode;
+ 	assert("edward-196", cryptcompress_inode_ok(inode));
+ 
+ 	info = cryptcompress_inode_data(inode);
+@@ -2949,7 +2949,7 @@ ssize_t read_cryptcompress(struct file *
+ 	struct cryptcompress_info *info;
+ 	reiser4_block_nr needed;
+ 
+-	inode = file->f_dentry->d_inode;
++	inode = file->f_path.dentry->d_inode;
+ 	assert("edward-1194", !reiser4_inode_get_flag(inode, REISER4_NO_SD));
+ 
+ 	ctx = reiser4_init_context(inode->i_sb);
+@@ -3692,7 +3692,7 @@ int mmap_cryptcompress(struct file *file
+ 	struct inode *inode;
+ 	reiser4_context *ctx;
+ 
+-	inode = file->f_dentry->d_inode;
++	inode = file->f_path.dentry->d_inode;
+ 	ctx = reiser4_init_context(inode->i_sb);
+ 	if (IS_ERR(ctx))
+ 		return PTR_ERR(ctx);
+--- linux/fs/reiser4/plugin/file/file_conversion.c.orig	2015-03-30 02:33:26.000000000 +0300
++++ linux/fs/reiser4/plugin/file/file_conversion.c	2015-03-30 11:23:04.021341335 +0300
+@@ -524,7 +524,7 @@ ssize_t reiser4_write_dispatch(struct fi
+ 	ssize_t written_old = 0; /* bytes written with initial plugin */
+ 	ssize_t written_new = 0; /* bytes written with new plugin */
+ 	struct dispatch_context cont;
+-	struct inode * inode = file->f_dentry->d_inode;
++	struct inode * inode = file->f_path.dentry->d_inode;
+ 
+ 	ctx = reiser4_init_context(inode->i_sb);
+ 	if (IS_ERR(ctx))
+@@ -603,20 +603,20 @@ int reiser4_open_dispatch(struct inode *
+ ssize_t reiser4_read_dispatch(struct file * file, char __user * buf,
+ 			      size_t size, loff_t * off)
+ {
+-	struct inode * inode = file->f_dentry->d_inode;
++	struct inode * inode = file->f_path.dentry->d_inode;
+ 	return PROT_PASSIVE(ssize_t, read, (file, buf, size, off));
+ }
+ 
+ long reiser4_ioctl_dispatch(struct file *filp, unsigned int cmd,
+ 			    unsigned long arg)
+ {
+-	struct inode * inode = filp->f_dentry->d_inode;
++	struct inode * inode = filp->f_path.dentry->d_inode;
+ 	return PROT_PASSIVE(int, ioctl, (filp, cmd, arg));
+ }
+ 
+ int reiser4_mmap_dispatch(struct file *file, struct vm_area_struct *vma)
+ {
+-	struct inode *inode = file->f_dentry->d_inode;
++	struct inode *inode = file->f_path.dentry->d_inode;
+ 	return PROT_PASSIVE(int, mmap, (file, vma));
+ }
+ 
+@@ -649,7 +649,7 @@ int reiser4_write_begin_dispatch(struct
+ 	struct page *page;
+ 	pgoff_t index;
+ 	reiser4_context *ctx;
+-	struct inode * inode = file->f_dentry->d_inode;
++	struct inode * inode = file->f_path.dentry->d_inode;
+ 
+ 	index = pos >> PAGE_CACHE_SHIFT;
+ 	page = grab_cache_page_write_begin(mapping, index,
+@@ -658,7 +658,7 @@ int reiser4_write_begin_dispatch(struct
+ 	if (!page)
+ 		return -ENOMEM;
+ 
+-	ctx = reiser4_init_context(file->f_dentry->d_inode->i_sb);
++	ctx = reiser4_init_context(file->f_path.dentry->d_inode->i_sb);
+ 	if (IS_ERR(ctx)) {
+ 		ret = PTR_ERR(ctx);
+ 		goto err2;
+--- linux/fs/reiser4/plugin/file/file.c.orig	2015-03-30 02:33:26.000000000 +0300
++++ linux/fs/reiser4/plugin/file/file.c	2015-03-30 11:19:45.069504179 +0300
+@@ -663,12 +663,12 @@ int load_file_hint(struct file *file, hi
+ 		if (IS_ERR(fsdata))
+ 			return PTR_ERR(fsdata);
+ 
+-		spin_lock_inode(file->f_dentry->d_inode);
++		spin_lock_inode(file->f_path.dentry->d_inode);
+ 		if (reiser4_seal_is_set(&fsdata->reg.hint.seal)) {
+ 			memcpy(hint, &fsdata->reg.hint, sizeof(*hint));
+ 			init_lh(&hint->lh);
+ 			hint->ext_coord.lh = &hint->lh;
+-			spin_unlock_inode(file->f_dentry->d_inode);
++			spin_unlock_inode(file->f_path.dentry->d_inode);
+ 			/*
+ 			 * force re-validation of the coord on the first
+ 			 * iteration of the read/write loop.
+@@ -680,7 +680,7 @@ int load_file_hint(struct file *file, hi
+ 			return 0;
+ 		}
+ 		memset(&fsdata->reg.hint, 0, sizeof(hint_t));
+-		spin_unlock_inode(file->f_dentry->d_inode);
++		spin_unlock_inode(file->f_path.dentry->d_inode);
+ 	}
+ 	hint_init_zero(hint);
+ 	return 0;
+@@ -707,9 +707,9 @@ void save_file_hint(struct file *file, c
+ 	assert("nikita-19891",
+ 	       coords_equal(&hint->seal.coord1, &hint->ext_coord.coord));
+ 	assert("vs-30", hint->lh.owner == NULL);
+-	spin_lock_inode(file->f_dentry->d_inode);
++	spin_lock_inode(file->f_path.dentry->d_inode);
+ 	fsdata->reg.hint = *hint;
+-	spin_unlock_inode(file->f_dentry->d_inode);
++	spin_unlock_inode(file->f_path.dentry->d_inode);
+ 	return;
+ }
+ 
+@@ -1656,7 +1656,7 @@ static ssize_t do_read_compound_file(hin
+ 	coord_t *coord;
+ 	znode *loaded;
+ 
+-	inode = file->f_dentry->d_inode;
++	inode = file->f_path.dentry->d_inode;
+ 
+ 	/* build flow */
+ 	assert("vs-1250",
+@@ -1726,7 +1726,7 @@ ssize_t read_unix_file(struct file *file
+ 	if (unlikely(read_amount == 0))
+ 		return 0;
+ 
+-	inode = file->f_dentry->d_inode;
++	inode = file->f_path.dentry->d_inode;
+ 	assert("vs-972", !reiser4_inode_get_flag(inode, REISER4_NO_SD));
+ 
+ 	ctx = reiser4_init_context(inode->i_sb);
+@@ -1795,7 +1795,7 @@ static ssize_t read_compound_file(struct
+ 	size_t was_read = 0;
+ 	loff_t i_size;
+ 
+-	inode = file->f_dentry->d_inode;
++	inode = file->f_path.dentry->d_inode;
+ 	assert("vs-972", !reiser4_inode_get_flag(inode, REISER4_NO_SD));
+ 
+ 	i_size = i_size_read(inode);
+@@ -1887,7 +1887,7 @@ int mmap_unix_file(struct file *file, st
+ 	struct unix_file_info *uf_info;
+ 	reiser4_block_nr needed;
+ 
+-	inode = file->f_dentry->d_inode;
++	inode = file->f_path.dentry->d_inode;
+ 	ctx = reiser4_init_context(inode->i_sb);
+ 	if (IS_ERR(ctx))
+ 		return PTR_ERR(ctx);
+@@ -2096,7 +2096,7 @@ ssize_t write_unix_file(struct file *fil
+ 	loff_t new_size;
+ 
+ 	ctx = get_current_context();
+-	inode = file->f_dentry->d_inode;
++	inode = file->f_path.dentry->d_inode;
+ 
+ 	assert("vs-947", !reiser4_inode_get_flag(inode, REISER4_NO_SD));
+ 	assert("vs-9471", (!reiser4_inode_get_flag(inode, REISER4_PART_MIXED)));
+@@ -2318,7 +2318,7 @@ int release_unix_file(struct inode *inod
+ 		uf_info = unix_file_inode_data(inode);
+ 
+ 		get_exclusive_access_careful(uf_info, inode);
+-		if (file->f_dentry->d_lockref.count == 1 &&
++		if (file->f_path.dentry->d_lockref.count == 1 &&
+ 		    uf_info->container == UF_CONTAINER_EXTENTS &&
+ 		    !should_have_notail(uf_info, inode->i_size) &&
+ 		    !rofs_inode(inode)) {
+@@ -2731,7 +2731,7 @@ int write_begin_unix_file(struct file *f
+ 	struct inode * inode;
+ 	struct unix_file_info *info;
+ 
+-	inode = file->f_dentry->d_inode;
++	inode = file->f_path.dentry->d_inode;
+ 	info = unix_file_inode_data(inode);
+ 
+ 	ret = reiser4_grab_space_force(estimate_one_insert_into_item
+@@ -2740,7 +2740,7 @@ int write_begin_unix_file(struct file *f
+ 	if (ret)
+ 		return ret;
+ 	get_exclusive_access(info);
+-	ret = find_file_state(file->f_dentry->d_inode, info);
++	ret = find_file_state(file->f_path.dentry->d_inode, info);
+ 	if (unlikely(ret != 0)) {
+ 		drop_exclusive_access(info);
+ 		return ret;
+@@ -2769,7 +2769,7 @@ int write_end_unix_file(struct file *fil
+ 	struct inode *inode;
+ 	struct unix_file_info *info;
+ 
+-	inode = file->f_dentry->d_inode;
++	inode = file->f_path.dentry->d_inode;
+ 	info = unix_file_inode_data(inode);
+ 
+ 	unlock_page(page);

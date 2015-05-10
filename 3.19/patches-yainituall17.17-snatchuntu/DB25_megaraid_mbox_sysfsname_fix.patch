@@ -1,0 +1,11 @@
+--- linux-2.6.25.8.test/drivers/scsi/megaraid/megaraid_mbox.c.db25.orig	2008-04-17 05:49:44.000000000 +0300
++++ linux-2.6.25.8.test/drivers/scsi/megaraid/megaraid_mbox.c	2008-06-24 21:10:46.000000000 +0300
+@@ -301,7 +301,7 @@ MODULE_DEVICE_TABLE(pci, pci_id_table_g)
+ 
+ 
+ static struct pci_driver megaraid_pci_driver = {
+-	.name		= "megaraid",
++	.name		= "megaraid_mbox",
+ 	.id_table	= pci_id_table_g,
+ 	.probe		= megaraid_probe_one,
+ 	.remove		= __devexit_p(megaraid_detach_one),
