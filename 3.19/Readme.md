@@ -3,11 +3,11 @@
 
 Find here the patches for the YaIniT 3.19 Kernel
 
-The latest release is 3.19.6 
+The latest release is 3.19.7 
 
 Patches for GNU Licensed Kernel find at  ftp.linux.org.tr or mirrors.
 YAINIT (my patches, better adaption for GCC compilations and all logos)
-UBUNTU (last version 16.16)
+UBUNTU (last version 17.17)
 MAGEIA (incl. AUFS)
 Fedora (most supplied patches)
 GENTOO  (no PAX, no GRSECURITY)
