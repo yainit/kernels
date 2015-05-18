@@ -1,3 +1,0 @@
-Please download linux-3.16.tar.xz from ftp.kernel.org
-
- 
