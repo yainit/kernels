@@ -1,0 +1,27 @@
+From: Dieter Miosga  <dmiosga6200@gmail.com>
+Date: Sun, 08 Nov 2015 23:59:59 -0000
+Subject: [PATCH] Sorry, but -O2 optimization did not hurt for now jitter-entropy with YaIniT
+
+According all my experience, a kernel compiled with the YaIniT configuration tools
+does not crash using higher optimization as is the -O2 in standard LFS kernel.
+Therefore, eliminate the nasty compilation break and warn the user.
+
+Signed-off-by: Happy Lander <secure-piloting@freed-universe.com>
+---
+--- a/crypto/jitterentropy.c.orig	2015-09-25 14:41:50.000000000 +0000
++++ b/crypto/jitterentropy.c	2015-09-25 14:42:34.000000000 +0000
+@@ -48,12 +48,12 @@
+ /*
+  * This Jitterentropy RNG is based on the jitterentropy library
+  * version 1.1.0 provided at http://www.chronox.de/jent.html
+- */
++ *  Does work with the YaIniT configurations and -O2 !
+ 
+ #ifdef __OPTIMIZE__
+  #error "The CPU Jitter random number generator must not be compiled with optimizations. See documentation. Use the compiler switch -O0 for compiling jitterentropy.c."
+ #endif
+-
++*/
+ typedef	unsigned long long	__u64;
+ typedef	long long		__s64;
+ typedef	unsigned int		__u32;

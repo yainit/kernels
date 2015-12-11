@@ -1,0 +1,11 @@
+--- a/drivers/hv/hv.c.orig	2015-11-21 17:58:37.000000000 +0000
++++ b/drivers/hv/hv.c	2015-11-21 18:05:50.000000000 +0000
+@@ -169,7 +169,7 @@
+ 	/*
+ 	 * Write our OS ID.
+ 	 */
+-	hv_context.guestid = generate_guest_id(0x80 /*Canonical*/, LINUX_VERSION_CODE, PKG_ABI);
++	hv_context.guestid = generate_guest_id(0x0 /*Canonical*/, LINUX_VERSION_CODE, PKG_ABI);
+ 	wrmsrl(HV_X64_MSR_GUEST_OS_ID, hv_context.guestid);
+ 
+ 	/* See if the hypercall page is already set */

@@ -1,0 +1,214 @@
+diff -uNr a/drivers/gpu/drm/sti/Kconfig b/drivers/gpu/drm/sti/Kconfig
+--- a/drivers/gpu/drm/sti/Kconfig	2015-08-30 18:34:09.000000000 +0000
++++ b/drivers/gpu/drm/sti/Kconfig	2015-11-22 18:34:48.000000000 +0000
+@@ -6,7 +6,6 @@
+ 	select DRM_GEM_CMA_HELPER
+ 	select DRM_KMS_CMA_HELPER
+ 	select DRM_PANEL
+-	select FW_LOADER_USER_HELPER_FALLBACK
+ 	help
+ 	  Choose this option to enable DRM on STM stiH41x chipset
+ 
+diff -uNr a/drivers/media/platform/vivid/vivid-osd.c b/drivers/media/platform/vivid/vivid-osd.c
+--- a/drivers/media/platform/vivid/vivid-osd.c	2015-08-30 18:34:09.000000000 +0000
++++ b/drivers/media/platform/vivid/vivid-osd.c	2015-11-22 18:34:48.000000000 +0000
+@@ -85,6 +85,7 @@
+ 	case FBIOGET_VBLANK: {
+ 		struct fb_vblank vblank;
+ 
++		memset(&vblank, 0, sizeof(vblank));
+ 		vblank.flags = FB_VBLANK_HAVE_COUNT | FB_VBLANK_HAVE_VCOUNT |
+ 			FB_VBLANK_HAVE_VSYNC;
+ 		vblank.count = 0;
+diff -uNr a/drivers/net/wireless/rtlwifi/pci.h b/drivers/net/wireless/rtlwifi/pci.h
+--- a/drivers/net/wireless/rtlwifi/pci.h	2015-08-30 18:34:09.000000000 +0000
++++ b/drivers/net/wireless/rtlwifi/pci.h	2015-11-22 18:34:48.000000000 +0000
+@@ -247,6 +247,8 @@
+ 	/* MSI support */
+ 	bool msi_support;
+ 	bool using_msi;
++	/* interrupt clear before set */
++	bool int_clear;
+ };
+ 
+ struct mp_adapter {
+diff -uNr a/drivers/net/wireless/rtlwifi/rtl8821ae/hw.c b/drivers/net/wireless/rtlwifi/rtl8821ae/hw.c
+--- a/drivers/net/wireless/rtlwifi/rtl8821ae/hw.c	2015-11-22 18:33:54.000000000 +0000
++++ b/drivers/net/wireless/rtlwifi/rtl8821ae/hw.c	2015-11-22 18:34:48.000000000 +0000
+@@ -2253,11 +2253,28 @@
+ 	}
+ }
+ 
++static void rtl8821ae_clear_interrupt(struct ieee80211_hw *hw)
++{
++	struct rtl_priv *rtlpriv = rtl_priv(hw);
++	u32 tmp = rtl_read_dword(rtlpriv, REG_HISR);
++
++	rtl_write_dword(rtlpriv, REG_HISR, tmp);
++
++	tmp = rtl_read_dword(rtlpriv, REG_HISRE);
++	rtl_write_dword(rtlpriv, REG_HISRE, tmp);
++
++	tmp = rtl_read_dword(rtlpriv, REG_HSISR);
++	rtl_write_dword(rtlpriv, REG_HSISR, tmp);
++}
++
+ void rtl8821ae_enable_interrupt(struct ieee80211_hw *hw)
+ {
+ 	struct rtl_priv *rtlpriv = rtl_priv(hw);
+ 	struct rtl_pci *rtlpci = rtl_pcidev(rtl_pcipriv(hw));
+ 
++	if (!rtlpci->int_clear)
++		rtl8821ae_clear_interrupt(hw);/*clear it here first*/
++
+ 	rtl_write_dword(rtlpriv, REG_HIMR, rtlpci->irq_mask[0] & 0xFFFFFFFF);
+ 	rtl_write_dword(rtlpriv, REG_HIMRE, rtlpci->irq_mask[1] & 0xFFFFFFFF);
+ 	rtlpci->irq_enabled = true;
+diff -uNr a/drivers/net/wireless/rtlwifi/rtl8821ae/sw.c b/drivers/net/wireless/rtlwifi/rtl8821ae/sw.c
+--- a/drivers/net/wireless/rtlwifi/rtl8821ae/sw.c	2015-08-30 18:34:09.000000000 +0000
++++ b/drivers/net/wireless/rtlwifi/rtl8821ae/sw.c	2015-11-22 18:34:48.000000000 +0000
+@@ -96,6 +96,7 @@
+ 
+ 	rtl8821ae_bt_reg_init(hw);
+ 	rtlpci->msi_support = rtlpriv->cfg->mod_params->msi_support;
++	rtlpci->int_clear = rtlpriv->cfg->mod_params->int_clear;
+ 	rtlpriv->btcoexist.btc_ops = rtl_btc_get_ops_pointer();
+ 
+ 	rtlpriv->dm.dm_initialgain_enable = 1;
+@@ -167,6 +168,7 @@
+ 	rtlpriv->psc.swctrl_lps = rtlpriv->cfg->mod_params->swctrl_lps;
+ 	rtlpriv->psc.fwctrl_lps = rtlpriv->cfg->mod_params->fwctrl_lps;
+ 	rtlpci->msi_support = rtlpriv->cfg->mod_params->msi_support;
++	rtlpci->msi_support = rtlpriv->cfg->mod_params->int_clear;
+ 	if (rtlpriv->cfg->mod_params->disable_watchdog)
+ 		pr_info("watchdog disabled\n");
+ 	rtlpriv->psc.reg_fwctrl_lps = 3;
+@@ -308,6 +310,7 @@
+ 	.swctrl_lps = false,
+ 	.fwctrl_lps = true,
+ 	.msi_support = true,
++	.int_clear = true,
+ 	.debug = DBG_EMERG,
+ 	.disable_watchdog = 0,
+ };
+@@ -437,6 +440,7 @@
+ module_param_named(msi, rtl8821ae_mod_params.msi_support, bool, 0444);
+ module_param_named(disable_watchdog, rtl8821ae_mod_params.disable_watchdog,
+ 		   bool, 0444);
++module_param_named(int_clear, rtl8821ae_mod_params.int_clear, bool, 0444);
+ MODULE_PARM_DESC(swenc, "Set to 1 for software crypto (default 0)\n");
+ MODULE_PARM_DESC(ips, "Set to 0 to not use link power save (default 1)\n");
+ MODULE_PARM_DESC(swlps, "Set to 1 to use SW control power save (default 0)\n");
+@@ -444,6 +448,7 @@
+ MODULE_PARM_DESC(msi, "Set to 1 to use MSI interrupts mode (default 1)\n");
+ MODULE_PARM_DESC(debug, "Set debug level (0-5) (default 0)");
+ MODULE_PARM_DESC(disable_watchdog, "Set to 1 to disable the watchdog (default 0)\n");
++MODULE_PARM_DESC(int_clear, "Set to 1 to disable interrupt clear before set (default 0)\n");
+ 
+ static SIMPLE_DEV_PM_OPS(rtlwifi_pm_ops, rtl_pci_suspend, rtl_pci_resume);
+ 
+diff -uNr a/drivers/net/wireless/rtlwifi/wifi.h b/drivers/net/wireless/rtlwifi/wifi.h
+--- a/drivers/net/wireless/rtlwifi/wifi.h	2015-08-30 18:34:09.000000000 +0000
++++ b/drivers/net/wireless/rtlwifi/wifi.h	2015-11-22 18:34:48.000000000 +0000
+@@ -2234,6 +2234,9 @@
+ 
+ 	/* default 0: 1 means disable */
+ 	bool disable_watchdog;
++
++	/* default 0: 1 means do not disable interrupts */
++	bool int_clear;
+ };
+ 
+ struct rtl_hal_usbint_cfg {
+diff -uNr a/drivers/staging/dgnc/dgnc_mgmt.c b/drivers/staging/dgnc/dgnc_mgmt.c
+--- a/drivers/staging/dgnc/dgnc_mgmt.c	2015-08-30 18:34:09.000000000 +0000
++++ b/drivers/staging/dgnc/dgnc_mgmt.c	2015-11-22 18:34:48.000000000 +0000
+@@ -115,6 +115,7 @@
+ 
+ 		spin_lock_irqsave(&dgnc_global_lock, flags);
+ 
++		memset(&ddi, 0, sizeof(ddi));
+ 		ddi.dinfo_nboards = dgnc_NumBoards;
+ 		sprintf(ddi.dinfo_version, "%s", DG_PART);
+ 
+diff -uNr a/sound/pci/hda/hda_codec.c b/sound/pci/hda/hda_codec.c
+--- a/sound/pci/hda/hda_codec.c	2015-08-30 18:34:09.000000000 +0000
++++ b/sound/pci/hda/hda_codec.c	2015-11-22 18:34:48.000000000 +0000
+@@ -3438,10 +3438,8 @@
+ 	int dev, err;
+ 
+ 	err = snd_hda_codec_parse_pcms(codec);
+-	if (err < 0) {
+-		snd_hda_codec_reset(codec);
++	if (err < 0)
+ 		return err;
+-	}
+ 
+ 	/* attach a new PCM streams */
+ 	list_for_each_entry(cpcm, &codec->pcm_list_head, list) {
+diff -uNr a/sound/pci/hda/hda_intel.c b/sound/pci/hda/hda_intel.c
+--- a/sound/pci/hda/hda_intel.c	2015-08-30 18:34:09.000000000 +0000
++++ b/sound/pci/hda/hda_intel.c	2015-11-22 18:34:48.000000000 +0000
+@@ -334,6 +334,7 @@
+ 
+ #define AZX_DCAPS_PRESET_CTHDA \
+ 	(AZX_DCAPS_NO_MSI | AZX_DCAPS_POSFIX_LPIB |\
++	 AZX_DCAPS_NO_64BIT |\
+ 	 AZX_DCAPS_4K_BDLE_BOUNDARY | AZX_DCAPS_SNOOP_OFF)
+ 
+ /*
+@@ -2284,11 +2285,13 @@
+ 	  .class = PCI_CLASS_MULTIMEDIA_HD_AUDIO << 8,
+ 	  .class_mask = 0xffffff,
+ 	  .driver_data = AZX_DRIVER_CTX | AZX_DCAPS_CTX_WORKAROUND |
++	  AZX_DCAPS_NO_64BIT |
+ 	  AZX_DCAPS_RIRB_PRE_DELAY | AZX_DCAPS_POSFIX_LPIB },
+ #else
+ 	/* this entry seems still valid -- i.e. without emu20kx chip */
+ 	{ PCI_DEVICE(0x1102, 0x0009),
+ 	  .driver_data = AZX_DRIVER_CTX | AZX_DCAPS_CTX_WORKAROUND |
++	  AZX_DCAPS_NO_64BIT |
+ 	  AZX_DCAPS_RIRB_PRE_DELAY | AZX_DCAPS_POSFIX_LPIB },
+ #endif
+ 	/* CM8888 */
+diff -uNr a/sound/pci/hda/patch_realtek.c b/sound/pci/hda/patch_realtek.c
+--- a/sound/pci/hda/patch_realtek.c	2015-11-22 18:34:22.000000000 +0000
++++ b/sound/pci/hda/patch_realtek.c	2015-11-22 18:34:46.000000000 +0000
+@@ -4188,24 +4188,6 @@
+ 	}
+ }
+ 
+-/* fixup for Thinkpad docks: add dock pins, avoid HP parser fixup */
+-static void alc_fixup_tpt440_dock(struct hda_codec *codec,
+-				  const struct hda_fixup *fix, int action)
+-{
+-	static const struct hda_pintbl pincfgs[] = {
+-		{ 0x16, 0x21211010 }, /* dock headphone */
+-		{ 0x19, 0x21a11010 }, /* dock mic */
+-		{ }
+-	};
+-	struct alc_spec *spec = codec->spec;
+-
+-	if (action == HDA_FIXUP_ACT_PRE_PROBE) {
+-		spec->parse_flags = HDA_PINCFG_NO_HP_FIXUP;
+-		codec->power_save_node = 0; /* avoid click noises */
+-		snd_hda_apply_pincfgs(codec, pincfgs);
+-	}
+-}
+-
+ static void alc_shutup_dell_xps13(struct hda_codec *codec)
+ {
+ 	struct alc_spec *spec = codec->spec;
+@@ -5044,12 +5026,6 @@
+ 		.chained = true,
+ 		.chain_id = ALC269_FIXUP_HEADSET_MODE
+ 	},
+-	[ALC292_FIXUP_TPT440_DOCK] = {
+-		.type = HDA_FIXUP_FUNC,
+-		.v.func = alc_fixup_tpt440_dock,
+-		.chained = true,
+-		.chain_id = ALC269_FIXUP_LIMIT_INT_MIC_BOOST
+-	},
+ 	[ALC283_FIXUP_BXBT2807_MIC] = {
+ 		.type = HDA_FIXUP_PINS,
+ 		.v.pins = (const struct hda_pintbl[]) {

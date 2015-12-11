@@ -1,0 +1,14 @@
+diff -uNr linux-3.18/scripts/mkcompile_h linux-3.18-new/scripts/mkcompile_h
+--- a/scripts/mkcompile_h	2014-08-03 22:25:02.000000000 +0000
++++ b/scripts/mkcompile_h	2014-11-05 14:34:31.026077771 +0000
+@@ -54,8 +54,8 @@
+ fi
+ 
+ UTS_VERSION="#$VERSION"
+-CONFIG_FLAGS=""
+-if [ -n "$SMP" ] ; then CONFIG_FLAGS="SMP"; fi
++CONFIG_FLAGS="YaIniT VIVID_37-42 GEN MGA OSS ZEN"
++if [ -n "$SMP" ] ; then CONFIG_FLAGS="$CONFIG_FLAGS SMP"; fi
+ if [ -n "$PREEMPT" ] ; then CONFIG_FLAGS="$CONFIG_FLAGS PREEMPT"; fi
+ UTS_VERSION="$UTS_VERSION $CONFIG_FLAGS $TIMESTAMP"
+ 

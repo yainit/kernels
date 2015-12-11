@@ -1,0 +1,17 @@
+#!/bin/busybox ash
+set -x
+if [ "$1" ! "" ]; then
+FN="linux-$1.tar.xz"
+! [ -e $FN ] && FN="linux-$1.tar.bz2"
+! [ -e $FN ] && FN="linux-$1.tar.gz"
+! [ -e $FN ] && exit 5
+#FN="linux-3.2.13-full.tar.xz"
+fi
+source ./functions-ash-dm
+RAMDISKDIR="/ramdisk"
+[ "$2" != "" ] &&  if [ -d "$2" ]; then RAMDISKDIR="$2"; fi
+
+umount  $RAMDISKDIR
+#
+exit $RC
+#

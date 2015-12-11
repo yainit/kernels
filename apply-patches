@@ -1,0 +1,54 @@
+#!/bin/busybox ash 
+HERE=`pwd`
+HERESUB="$(/bin/busybox basename $HERE 2>/dev/null)"
+KERNELDIR=""
+if [ "$1" != "" ]; then
+ HERESUB=$1
+fi
+KERNELDIR="$HERE/linux-$HERESUB"
+
+PATCHDIR="patches-all"
+[ "$2" != "" ] && PATCHDIR="$2"
+
+
+/bin/busybox rm  patchings.log
+/bin/busybox rm  $KERNELDIR/patchings.log
+AUFSDIR="not-existent"
+if [ "$3" != "" ]; then 
+ AUFSDIR="$HERE/$3"
+fi
+
+
+do_patchset() {
+
+echo " aufs Docu $AUFSDIR --> $KERNELDIR"
+/bin/busybox cp -Rv  $AUFSDIR/Documentation/*  $KERNELDIR/Documentation/
+echo " aufs fs $AUFSDIR --> $KERNELDIR"
+/bin/busybox cp -Rv  $AUFSDIR/fs/*  $KERNELDIR/fs/
+echo " aufs include $AUFSDIR --> $KERNELDIR"
+/bin/busybox cp -Rv  $AUFSDIR/include/*  $KERNELDIR/include/
+local RC
+RC=""
+echo "Additional patches, proprietary and from distros (Fedora,SuSE,ArchLinux,..) -->"
+if [ -d $HERE/$PATCHDIR ]; then 
+	cd $KERNELDIR
+	/bin/busybox find  $HERE/$PATCHDIR -maxdepth 1 | /bin/busybox sort | while read l; do
+	  echo "Patching with --->  $l"
+	  patch -p1 -F70 < $l
+	  RC=$?
+	  if [ $RC -gt 0 ]; then echo "ERROR: Failed patching ---> $l with '$RC'"; fi 
+	done
+cd $HERE
+fi
+
+}
+
+
+do_patchset >> patchings.log 2>&1
+if [ -e $KERNELDIR/localversion-rt  ]; then
+  source /etc/functions-ash-dm
+  
+fi 
+cp patchings.log $KERNELDIR/ 
+exit $?
+

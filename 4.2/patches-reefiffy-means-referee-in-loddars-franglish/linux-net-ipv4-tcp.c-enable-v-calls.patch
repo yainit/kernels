@@ -1,0 +1,11 @@
+--- a/net/ipv4/tcp.c.orig	2015-09-25 15:41:36.000000000 +0000
++++ b/net/ipv4/tcp.c	2015-09-25 15:36:46.000000000 +0000
+@@ -269,6 +269,8 @@
+ #include <linux/crypto.h>
+ #include <linux/time.h>
+ #include <linux/slab.h>
++#include <linux/mm.h>
++#include <linux/vmalloc.h>
+ 
+ #include <net/icmp.h>
+ #include <net/inet_common.h>

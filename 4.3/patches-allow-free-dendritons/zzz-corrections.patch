@@ -1,0 +1,28 @@
+diff -uNr linux-4.3/include/linux/fs.h linux-4.3-oss-4.1-noXEN/include/linux/fs.h
+--- linux-4.3/include/linux/fs.h	2015-11-02 00:05:25.000000000 +0000
++++ linux-4.3-oss-4.1-noXEN/include/linux/fs.h	2015-12-01 21:03:20.000000000 +0000
+@@ -1734,6 +1734,7 @@
+ 				  struct shrink_control *);
+ 	long (*free_cached_objects)(struct super_block *,
+ 				    struct shrink_control *);
++	dev_t (*get_inode_dev)(const struct inode *);
+ #if defined(CONFIG_BLK_DEV_LOOP) ||  defined(CONFIG_BLK_DEV_LOOP_MODULE)
+ 	/* and aufs */
+ 	struct file *(*real_loop)(struct file *);
+ #endif
+ };
+ 
+ /*
+@@ -3069,4 +3069,12 @@
+ 
+ extern bool path_noexec(const struct path *path);
+ 
++static inline dev_t inode_get_dev(const struct inode *inode)
++{
++	if (inode->i_sb->s_op->get_inode_dev)
++		return inode->i_sb->s_op->get_inode_dev(inode);
++
++	return inode->i_sb->s_dev;
++}
++
+ #endif /* _LINUX_FS_H */
