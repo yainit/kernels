@@ -7,7 +7,7 @@ diff -uNr a/Makefile b/Makefile
  SUBLEVEL = 2
 -EXTRAVERSION =
 -NAME = Blurry Fish Butt
-+EXTRAVERSION = .yainituall_1512I
++EXTRAVERSION = .yainituall_1512II
 +NAME = YaIniT with all from OpenSuSE-4.1 Gentoo Ubuntu-Xenial-4.13 Mageia sunxi BFQ ZEN2 PF1
  
  # *DOCUMENTATION*
