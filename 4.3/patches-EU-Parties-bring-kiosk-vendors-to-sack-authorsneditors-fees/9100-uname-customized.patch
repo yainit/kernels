@@ -7,7 +7,7 @@ diff -uNr linux-3.18/scripts/mkcompile_h linux-3.18-new/scripts/mkcompile_h
  UTS_VERSION="#$VERSION"
 -CONFIG_FLAGS=""
 -if [ -n "$SMP" ] ; then CONFIG_FLAGS="SMP"; fi
-+CONFIG_FLAGS="YaIniTU-4.13 sunxi GEN OSS4.1 MGA6 ZEN2PF1"
++CONFIG_FLAGS="YaIniTU-4.13 sunxi GEN OSS4.1 MGA6 ZEN3PF2"
 +if [ -n "$SMP" ] ; then CONFIG_FLAGS="$CONFIG_FLAGS SMP"; fi
  if [ -n "$PREEMPT" ] ; then CONFIG_FLAGS="$CONFIG_FLAGS PREEMPT"; fi
  UTS_VERSION="$UTS_VERSION $CONFIG_FLAGS $TIMESTAMP"
