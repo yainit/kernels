@@ -37,7 +37,7 @@ diff -uNr a/arch/x86/boot/main.c b/arch/x86/boot/main.c
 +		     "different from YaIniT,  this means:\n"
 +		     "Unable to boot - \n"
 +		     "please use a kernel appropriate for your CPU\n"
-+		     "      ON ALL FUTURE FAILURES AND CRASHES !   ");
++		     "             ON FUTURE FAILURES AND CRASHES ! ");
 +		puts("Otherwise, using a configuration different from YaIniT,\n"
 +		     "this kernel will crash on any use of the detected missing feature!");
 +		/*die();*/

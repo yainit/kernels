@@ -5,7 +5,7 @@ diff -uNr linux-3.19.3-pup/include/linux/jiffies.h linux-3.19.3-zen4yainit/inclu
   * Have the 32 bit jiffies value wrap 5 minutes after boot
   * so jiffies wrap bugs show up earlier.
   */
-+#if  defined(CONFIG_SCHED_BFS) || defined(CONFIG_PCK_INTERACTIVE)
++#if  defined(CONFIG_SCHED_BFS) || defined(CONFIG_ZEN_INTERACTIVE)
 +#define INITIAL_JIFFIES ((unsigned long)(unsigned int) (-10*HZ))
 +#else
  #define INITIAL_JIFFIES ((unsigned long)(unsigned int) (-300*HZ))

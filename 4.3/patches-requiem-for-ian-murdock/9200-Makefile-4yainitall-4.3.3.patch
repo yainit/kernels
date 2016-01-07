@@ -7,8 +7,8 @@ diff -uNr a/Makefile b/Makefile
  SUBLEVEL = 3
 -EXTRAVERSION =
 -NAME = Blurry Fish Butt
-+EXTRAVERSION = .yainitignuall_1601I
-+NAME = YaIniT with all from OpenSuSE-4.1/4.3.3-3.1 Gentoo Ubuntu-Xenial-5.16 Mageia sunxi BFQ GNU-PCK2
++EXTRAVERSION = .yainitiuall_1601I
++NAME = YaIniT with all from OpenSuSE-4.3.3-3.1 Gentoo Ubuntu-Xenial-5.16 IntelClear Mageia sunxi BFQ ZEN3 PF2
  
  # *DOCUMENTATION*
  # To see a list of typical targets execute "make help"

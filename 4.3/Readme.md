@@ -19,11 +19,11 @@ Also use the scripts deblob*  for generation of the GNU/Libre kernel.
 ANNOTATIONS:
 ============
 
-The patches requiem for Ian Murdock contain a selection of patches for 4.3.3 
+The patches requiem for Ian Murdock contain an unification of patches for 4.3.3 
 from the distributions
 
 Intel Clear Linux, OpenSuSE Tumbleweed-4.3.3-3.1, Fedora 20, Mageia Cauldron, Gentoo,
-Ubuntu-Xenial-5.16, PostFactum-ConKolivas-Fusion from Parabola ARCH-Package PCK2, Sunxi, PCLinuxOS,
+Ubuntu-Xenial-5.16, PostFactum-PF and Liquorix-ZEN Fusion, Sunxi, PCLinuxOS,
 TCP-Stealth TUM
 
 
