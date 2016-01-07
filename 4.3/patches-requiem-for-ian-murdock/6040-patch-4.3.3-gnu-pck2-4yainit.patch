@@ -19061,18 +19061,6 @@ diff -Nur linux-4.3.3/drivers/gpu/drm/radeon/r600_cp.c linux-4.3.3-pck/drivers/g
  	if (((dev_priv->flags & RADEON_FAMILY_MASK) >= CHIP_RV770))
  		r700_cp_load_microcode(dev_priv);
  	else
-diff -Nur linux-4.3.3/drivers/gpu/drm/ttm/ttm_tt.c linux-4.3.3-pck/drivers/gpu/drm/ttm/ttm_tt.c
---- linux-4.3.3/drivers/gpu/drm/ttm/ttm_tt.c	2015-12-15 02:41:43.000000000 -0300
-+++ linux-4.3.3-pck/drivers/gpu/drm/ttm/ttm_tt.c	2015-12-26 15:45:03.080009315 -0300
-@@ -339,7 +339,7 @@
- 	if (!persistent_swap_storage) {
- 		swap_storage = shmem_file_setup("ttm swap",
- 						ttm->num_pages << PAGE_SHIFT,
--						0);
-+						0, 0);
- 		if (IS_ERR(swap_storage)) {
- 			pr_err("Failed allocating swap storage\n");
- 			return PTR_ERR(swap_storage);
 diff -Nur linux-4.3.3/drivers/input/joydev.c linux-4.3.3-pck/drivers/input/joydev.c
 --- linux-4.3.3/drivers/input/joydev.c	2015-12-15 02:41:43.000000000 -0300
 +++ linux-4.3.3-pck/drivers/input/joydev.c	2015-12-26 15:44:47.554126867 -0300
