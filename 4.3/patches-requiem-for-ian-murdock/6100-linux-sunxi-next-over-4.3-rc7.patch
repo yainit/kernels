@@ -1,0 +1,3253 @@
+diff -uNr linux-4.3-rc1/Documentation/devicetree/bindings/sound/sun4i-codec.txt linux-sunxi-next/Documentation/devicetree/bindings/sound/sun4i-codec.txt
+--- linux-4.3-rc1/Documentation/devicetree/bindings/sound/sun4i-codec.txt	1970-01-01 08:00:00.000000000 +0800
++++ linux-sunxi-next/Documentation/devicetree/bindings/sound/sun4i-codec.txt	2015-09-19 04:24:59.000000000 +0800
+@@ -0,0 +1,33 @@
++* Allwinner A10 Codec
++
++Required properties:
++- compatible: must be either "allwinner,sun4i-a10-codec" or
++  "allwinner,sun7i-a20-codec"
++- reg: must contain the registers location and length
++- interrupts: must contain the codec interrupt
++- dmas: DMA channels for tx and rx dma. See the DMA client binding,
++	Documentation/devicetree/bindings/dma/dma.txt
++- dma-names: should include "tx" and "rx".
++- clocks: a list of phandle + clock-specifer pairs, one for each entry
++  in clock-names.
++- clock-names: should contain followings:
++   - "apb": the parent APB clock for this controller
++   - "codec": the parent module clock
++- routing : A list of the connections between audio components.  Each
++  entry is a pair of strings, the first being the connection's sink,
++  the second being the connection's source.
++
++
++Example:
++codec: codec@01c22c00 {
++	#sound-dai-cells = <0>;
++	compatible = "allwinner,sun7i-a20-codec";
++	reg = <0x01c22c00 0x40>;
++	interrupts = <0 30 4>;
++	clocks = <&apb0_gates 0>, <&codec_clk>;
++	clock-names = "apb", "codec";
++	dmas = <&dma 0 19>, <&dma 0 19>;
++	dma-names = "rx", "tx";
++	routing = "Headphone Jack", "HP Right",
++		  "Headphone Jack", "HP Left";
++};
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/Makefile linux-sunxi-next/arch/arm/boot/dts/Makefile
+--- linux-4.3-rc1/arch/arm/boot/dts/Makefile	2015-09-21 12:30:25.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/Makefile	2015-09-19 04:24:59.000000000 +0800
+@@ -577,7 +577,9 @@
+ 	sun4i-a10-gemei-g9.dtb \
+ 	sun4i-a10-hackberry.dtb \
+ 	sun4i-a10-hyundai-a7hd.dtb \
+-	sun4i-a10-inet97fv2.dtb \
++	sun4i-a10-inet1.dtb \
++ 	sun4i-a10-inet97fv2.dtb \
++	sun4i-a10-inet9f-rev03.dtb \
+ 	sun4i-a10-itead-iteaduino-plus.dtb \
+ 	sun4i-a10-jesurun-q5.dtb \
+ 	sun4i-a10-marsboard.dtb \
+@@ -587,11 +589,14 @@
+ 	sun4i-a10-olinuxino-lime.dtb \
+ 	sun4i-a10-pcduino.dtb
+ dtb-$(CONFIG_MACH_SUN5I) += \
++	sun5i-a10s-auxtek-t003.dtb \
+ 	sun5i-a10s-auxtek-t004.dtb \
+ 	sun5i-a10s-mk802.dtb \
+ 	sun5i-a10s-olinuxino-micro.dtb \
+ 	sun5i-a10s-r7-tv-dongle.dtb \
++	sun5i-a10s-wobo-i5.dtb \
+ 	sun5i-a13-hsg-h702.dtb \
++	sun5i-a13-inet-98v-rev2.dtb \
+ 	sun5i-a13-olinuxino.dtb \
+ 	sun5i-a13-olinuxino-micro.dtb \
+ 	sun5i-a13-utoo-p66.dtb
+@@ -622,11 +627,13 @@
+ 	sun7i-a20-wexler-tab7200.dtb
+ dtb-$(CONFIG_MACH_SUN8I) += \
+ 	sun8i-a23-evb.dtb \
++	sun8i-a23-gt90h-v4.dtb \
+ 	sun8i-a23-ippo-q8h-v5.dtb \
+ 	sun8i-a23-ippo-q8h-v1.2.dtb \
+ 	sun8i-a33-et-q8-v1.6.dtb \
+ 	sun8i-a33-ga10h-v1.1.dtb \
+ 	sun8i-a33-ippo-q8h-v1.2.dtb \
++	sun8i-a33-q8-tzx-723q4.dtb \
+ 	sun8i-a33-sinlinx-sina33.dtb
+ dtb-$(CONFIG_MACH_SUN9I) += \
+ 	sun9i-a80-optimus.dtb \
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun4i-a10-chuwi-v7-cw0825.dts linux-sunxi-next/arch/arm/boot/dts/sun4i-a10-chuwi-v7-cw0825.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun4i-a10-chuwi-v7-cw0825.dts	2015-09-21 12:30:25.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun4i-a10-chuwi-v7-cw0825.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -78,6 +78,18 @@
+ 	};
+ };
+ 
++&i2c1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c1_pins_a>;
++	status = "okay";
++};
++
++&i2c2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c2_pins_a>;
++	status = "okay";
++};
++
+ &lradc {
+ 	vref-supply = <&reg_vcc3v0>;
+ 	status = "okay";
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun4i-a10-inet1.dts linux-sunxi-next/arch/arm/boot/dts/sun4i-a10-inet1.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun4i-a10-inet1.dts	1970-01-01 08:00:00.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun4i-a10-inet1.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -0,0 +1,226 @@
++/*
++ * Copyright 2015 Hans de Goede <hdegoede@redhat.com>
++ *
++ * This file is dual-licensed: you can use it either under the terms
++ * of the GPL or the X11 license, at your option. Note that this dual
++ * licensing only applies to this file, and not this project as a
++ * whole.
++ *
++ *  a) This file is free software; you can redistribute it and/or
++ *     modify it under the terms of the GNU General Public License as
++ *     published by the Free Software Foundation; either version 2 of the
++ *     License, or (at your option) any later version.
++ *
++ *     This file is distributed in the hope that it will be useful,
++ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *     GNU General Public License for more details.
++ *
++ * Or, alternatively,
++ *
++ *  b) Permission is hereby granted, free of charge, to any person
++ *     obtaining a copy of this software and associated documentation
++ *     files (the "Software"), to deal in the Software without
++ *     restriction, including without limitation the rights to use,
++ *     copy, modify, merge, publish, distribute, sublicense, and/or
++ *     sell copies of the Software, and to permit persons to whom the
++ *     Software is furnished to do so, subject to the following
++ *     conditions:
++ *
++ *     The above copyright notice and this permission notice shall be
++ *     included in all copies or substantial portions of the Software.
++ *
++ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
++ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
++ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
++ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++ *     OTHER DEALINGS IN THE SOFTWARE.
++ */
++
++/dts-v1/;
++#include "sun4i-a10.dtsi"
++#include "sunxi-common-regulators.dtsi"
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
++#include <dt-bindings/interrupt-controller/irq.h>
++#include <dt-bindings/pinctrl/sun4i-a10.h>
++
++/ {
++	model = "iNet-1";
++	compatible = "inet-tek,inet1", "allwinner,sun4i-a10";
++
++	aliases {
++		serial0 = &uart0;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++};
++
++&cpu0 {
++	cpu-supply = <&reg_dcdc2>;
++};
++
++&ehci0  {
++	status = "okay";
++};
++
++&ehci1 {
++	status = "okay";
++};
++
++&i2c0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c0_pins_a>;
++	status = "okay";
++
++	axp209: pmic@34 {
++		reg = <0x34>;
++		interrupts = <0>;
++	};
++};
++
++#include "axp209.dtsi"
++
++&i2c1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c1_pins_a>;
++	status = "okay";
++
++	/* Accelerometer */
++	bma250@18 {
++		compatible = "bosch,bma250";
++		reg = <0x18>;
++		interrupt-parent = <&pio>;
++		interrupts = <7 0 IRQ_TYPE_EDGE_RISING>; /* PH0 / EINT0 */
++	};
++};
++
++&i2c2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c2_pins_a>;
++	status = "okay";
++};
++
++&lradc {
++	vref-supply = <&reg_ldo2>;
++	status = "okay";
++
++	button@200 {
++		label = "Volume Up";
++		linux,code = <KEY_VOLUMEUP>;
++		channel = <0>;
++		voltage = <200000>;
++	};
++
++	button@1000 {
++		label = "Volume Down";
++		linux,code = <KEY_VOLUMEDOWN>;
++		channel = <0>;
++		voltage = <1000000>;
++	};
++
++	button@1200 {
++		label = "Home";
++		linux,code = <KEY_HOMEPAGE>;
++		channel = <0>;
++		voltage = <1200000>;
++	};
++};
++
++&mmc0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&mmc0_pins_a>, <&mmc0_cd_pin_reference_design>;
++	vmmc-supply = <&reg_vcc3v3>;
++	bus-width = <4>;
++	cd-gpios = <&pio 7 1 GPIO_ACTIVE_HIGH>; /* PH1 */
++	cd-inverted;
++	status = "okay";
++};
++
++&ohci0  {
++	status = "okay";
++};
++
++&otg_sram {
++	status = "okay";
++};
++
++&pio {
++	usb0_id_detect_pin: usb0_id_detect_pin@0 {
++		allwinner,pins = "PH4";
++		allwinner,function = "gpio_in";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
++	};
++
++	usb0_vbus_detect_pin: usb0_vbus_detect_pin@0 {
++		allwinner,pins = "PH5";
++		allwinner,function = "gpio_in";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_PULL_DOWN>;
++	};
++};
++
++&reg_dcdc2 {
++	regulator-always-on;
++	regulator-min-microvolt = <1000000>;
++	regulator-max-microvolt = <1400000>;
++	regulator-name = "vdd-cpu";
++};
++
++&reg_dcdc3 {
++	regulator-always-on;
++	regulator-min-microvolt = <1250000>;
++	regulator-max-microvolt = <1250000>;
++	regulator-name = "vdd-int-dll";
++};
++
++&reg_ldo1 {
++	regulator-name = "vdd-rtc";
++};
++
++&reg_ldo2 {
++	regulator-always-on;
++	regulator-min-microvolt = <3000000>;
++	regulator-max-microvolt = <3000000>;
++	regulator-name = "avcc";
++};
++
++&reg_usb0_vbus {
++	status = "okay";
++};
++
++&reg_usb1_vbus {
++	status = "okay";
++};
++
++&reg_usb2_vbus {
++	status = "okay";
++};
++
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_pins_a>;
++	status = "okay";
++};
++
++&usb_otg {
++	dr_mode = "otg";
++	status = "okay";
++};
++
++&usbphy {
++	pinctrl-names = "default";
++	pinctrl-0 = <&usb0_id_detect_pin>, <&usb0_vbus_detect_pin>;
++	usb0_id_det-gpio = <&pio 7 4 GPIO_ACTIVE_HIGH>; /* PH4 */
++	usb0_vbus_det-gpio = <&pio 7 5 GPIO_ACTIVE_HIGH>; /* PH5 */
++	usb0_vbus-supply = <&reg_usb0_vbus>;
++	usb1_vbus-supply = <&reg_usb1_vbus>;
++	usb2_vbus-supply = <&reg_usb2_vbus>;
++	status = "okay";
++};
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun4i-a10-inet97fv2.dts linux-sunxi-next/arch/arm/boot/dts/sun4i-a10-inet97fv2.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun4i-a10-inet97fv2.dts	2015-08-31 02:34:09.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun4i-a10-inet97fv2.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -47,6 +47,7 @@
+ #include "sunxi-common-regulators.dtsi"
+ 
+ #include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
+ 
+ / {
+ 	model = "INet-97F Rev 02";
+@@ -61,8 +62,8 @@
+ 	};
+ };
+ 
+-&ehci0 {
+-	status = "okay";
++&cpu0 {
++	cpu-supply = <&reg_dcdc2>;
+ };
+ 
+ &ehci1 {
+@@ -75,12 +76,62 @@
+ 	status = "okay";
+ 
+ 	axp209: pmic@34 {
+-		compatible = "x-powers,axp209";
+ 		reg = <0x34>;
+ 		interrupts = <0>;
++	};
++};
++
++#include "axp209.dtsi"
++
++&i2c1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c1_pins_a>;
++	status = "okay";
++};
++
++&i2c2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c2_pins_a>;
++	status = "okay";
++};
++
++&lradc {
++	vref-supply = <&reg_ldo2>;
++	status = "okay";
++
++	button@200 {
++		label = "Menu";
++		linux,code = <KEY_MENU>;
++		channel = <0>;
++		voltage = <200000>;
++	};
++
++	button@600 {
++		label = "Volume Up";
++		linux,code = <KEY_VOLUMEUP>;
++		channel = <0>;
++		voltage = <600000>;
++	};
++
++	button@800 {
++		label = "Volume Down";
++		linux,code = <KEY_VOLUMEDOWN>;
++		channel = <0>;
++		voltage = <800000>;
++	};
++
++	button@1000 {
++		label = "Home";
++		linux,code = <KEY_HOMEPAGE>;
++		channel = <0>;
++		voltage = <1000000>;
++	};
+ 
+-		interrupt-controller;
+-		#interrupt-cells = <1>;
++	button@1200 {
++		label = "Esc";
++		linux,code = <KEY_ESC>;
++		channel = <0>;
++		voltage = <1200000>;
+ 	};
+ };
+ 
+@@ -94,15 +145,52 @@
+ 	status = "okay";
+ };
+ 
+-&ohci0 {
++&otg_sram {
+ 	status = "okay";
+ };
+ 
+-&ohci1 {
+-	status = "okay";
++&pio {
++	usb0_id_detect_pin: usb0_id_detect_pin@0 {
++		allwinner,pins = "PH4";
++		allwinner,function = "gpio_in";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
++	};
++
++	usb0_vbus_detect_pin: usb0_vbus_detect_pin@0 {
++		allwinner,pins = "PH5";
++		allwinner,function = "gpio_in";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_PULL_DOWN>;
++	};
+ };
+ 
+-&reg_usb1_vbus {
++&reg_dcdc2 {
++	regulator-always-on;
++	regulator-min-microvolt = <1000000>;
++	regulator-max-microvolt = <1400000>;
++	regulator-name = "vdd-cpu";
++};
++
++&reg_dcdc3 {
++	regulator-always-on;
++	regulator-min-microvolt = <1250000>;
++	regulator-max-microvolt = <1250000>;
++	regulator-name = "vdd-int-dll";
++};
++
++&reg_ldo1 {
++	regulator-name = "vdd-rtc";
++};
++
++&reg_ldo2 {
++	regulator-always-on;
++	regulator-min-microvolt = <3000000>;
++	regulator-max-microvolt = <3000000>;
++	regulator-name = "avcc";
++};
++
++&reg_usb0_vbus {
+ 	status = "okay";
+ };
+ 
+@@ -116,8 +204,17 @@
+ 	status = "okay";
+ };
+ 
++&usb_otg {
++	dr_mode = "otg";
++	status = "okay";
++};
++
+ &usbphy {
+-	usb1_vbus-supply = <&reg_usb1_vbus>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&usb0_id_detect_pin>, <&usb0_vbus_detect_pin>;
++	usb0_id_det-gpio = <&pio 7 4 GPIO_ACTIVE_HIGH>; /* PH4 */
++	usb0_vbus_det-gpio = <&pio 7 5 GPIO_ACTIVE_HIGH>; /* PH5 */
++	usb0_vbus-supply = <&reg_usb0_vbus>;
+ 	usb2_vbus-supply = <&reg_usb2_vbus>;
+ 	status = "okay";
+ };
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun4i-a10-inet9f-rev03.dts linux-sunxi-next/arch/arm/boot/dts/sun4i-a10-inet9f-rev03.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun4i-a10-inet9f-rev03.dts	1970-01-01 08:00:00.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun4i-a10-inet9f-rev03.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -0,0 +1,227 @@
++/*
++ * Copyright 2015 Hans de Goede <hdegoede@redhat.com>
++ *
++ * This file is dual-licensed: you can use it either under the terms
++ * of the GPL or the X11 license, at your option. Note that this dual
++ * licensing only applies to this file, and not this project as a
++ * whole.
++ *
++ *  a) This file is free software; you can redistribute it and/or
++ *     modify it under the terms of the GNU General Public License as
++ *     published by the Free Software Foundation; either version 2 of the
++ *     License, or (at your option) any later version.
++ *
++ *     This file is distributed in the hope that it will be useful,
++ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *     GNU General Public License for more details.
++ *
++ * Or, alternatively,
++ *
++ *  b) Permission is hereby granted, free of charge, to any person
++ *     obtaining a copy of this software and associated documentation
++ *     files (the "Software"), to deal in the Software without
++ *     restriction, including without limitation the rights to use,
++ *     copy, modify, merge, publish, distribute, sublicense, and/or
++ *     sell copies of the Software, and to permit persons to whom the
++ *     Software is furnished to do so, subject to the following
++ *     conditions:
++ *
++ *     The above copyright notice and this permission notice shall be
++ *     included in all copies or substantial portions of the Software.
++ *
++ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
++ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
++ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
++ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++ *     OTHER DEALINGS IN THE SOFTWARE.
++ */
++
++/dts-v1/;
++#include "sun4i-a10.dtsi"
++#include "sunxi-common-regulators.dtsi"
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
++#include <dt-bindings/interrupt-controller/irq.h>
++#include <dt-bindings/pinctrl/sun4i-a10.h>
++
++/ {
++	model = "iNet-9F Rev 03";
++	compatible = "inet-tek,inet9f-rev03", "allwinner,sun4i-a10";
++
++	aliases {
++		serial0 = &uart0;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++};
++
++&cpu0 {
++	cpu-supply = <&reg_dcdc2>;
++};
++
++&ehci1 {
++	status = "okay";
++};
++
++&i2c0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c0_pins_a>;
++	status = "okay";
++
++	axp209: pmic@34 {
++		reg = <0x34>;
++		interrupts = <0>;
++	};
++};
++
++#include "axp209.dtsi"
++
++&i2c1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c1_pins_a>;
++	status = "okay";
++
++	/* Accelerometer */
++	bma250@18 {
++		compatible = "bosch,bma250";
++		reg = <0x18>;
++		interrupt-parent = <&pio>;
++		interrupts = <7 0 IRQ_TYPE_EDGE_RISING>; /* PH0 / EINT0 */
++	};
++};
++
++&i2c2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c2_pins_a>;
++	status = "okay";
++};
++
++&lradc {
++	vref-supply = <&reg_ldo2>;
++	status = "okay";
++
++	button@200 {
++		label = "Menu";
++		linux,code = <KEY_MENU>;
++		channel = <0>;
++		voltage = <200000>;
++	};
++
++	button@600 {
++		label = "Volume Up";
++		linux,code = <KEY_VOLUMEUP>;
++		channel = <0>;
++		voltage = <600000>;
++	};
++
++	button@800 {
++		label = "Volume Down";
++		linux,code = <KEY_VOLUMEDOWN>;
++		channel = <0>;
++		voltage = <800000>;
++	};
++
++	button@1000 {
++		label = "Home";
++		linux,code = <KEY_HOMEPAGE>;
++		channel = <0>;
++		voltage = <1000000>;
++	};
++
++	button@1200 {
++		label = "Esc";
++		linux,code = <KEY_ESC>;
++		channel = <0>;
++		voltage = <1200000>;
++	};
++};
++
++&mmc0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&mmc0_pins_a>, <&mmc0_cd_pin_reference_design>;
++	vmmc-supply = <&reg_vcc3v3>;
++	bus-width = <4>;
++	cd-gpios = <&pio 7 1 GPIO_ACTIVE_HIGH>; /* PH1 */
++	cd-inverted;
++	status = "okay";
++};
++
++&otg_sram {
++	status = "okay";
++};
++
++&pio {
++	usb0_id_detect_pin: usb0_id_detect_pin@0 {
++		allwinner,pins = "PH4";
++		allwinner,function = "gpio_in";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
++	};
++
++	usb0_vbus_detect_pin: usb0_vbus_detect_pin@0 {
++		allwinner,pins = "PH5";
++		allwinner,function = "gpio_in";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_PULL_DOWN>;
++	};
++};
++
++&reg_dcdc2 {
++	regulator-always-on;
++	regulator-min-microvolt = <1000000>;
++	regulator-max-microvolt = <1400000>;
++	regulator-name = "vdd-cpu";
++};
++
++&reg_dcdc3 {
++	regulator-always-on;
++	regulator-min-microvolt = <1250000>;
++	regulator-max-microvolt = <1250000>;
++	regulator-name = "vdd-int-dll";
++};
++
++&reg_ldo1 {
++	regulator-name = "vdd-rtc";
++};
++
++&reg_ldo2 {
++	regulator-always-on;
++	regulator-min-microvolt = <3000000>;
++	regulator-max-microvolt = <3000000>;
++	regulator-name = "avcc";
++};
++
++&reg_usb0_vbus {
++	status = "okay";
++};
++
++&reg_usb2_vbus {
++	status = "okay";
++};
++
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_pins_a>;
++	status = "okay";
++};
++
++&usb_otg {
++	dr_mode = "otg";
++	status = "okay";
++};
++
++&usbphy {
++	pinctrl-names = "default";
++	pinctrl-0 = <&usb0_id_detect_pin>, <&usb0_vbus_detect_pin>;
++	usb0_id_det-gpio = <&pio 7 4 GPIO_ACTIVE_HIGH>; /* PH4 */
++	usb0_vbus_det-gpio = <&pio 7 5 GPIO_ACTIVE_HIGH>; /* PH5 */
++	usb0_vbus-supply = <&reg_usb0_vbus>;
++	usb2_vbus-supply = <&reg_usb2_vbus>;
++	status = "okay";
++};
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun4i-a10-jesurun-q5.dts linux-sunxi-next/arch/arm/boot/dts/sun4i-a10-jesurun-q5.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun4i-a10-jesurun-q5.dts	2015-08-31 02:34:09.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun4i-a10-jesurun-q5.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -156,6 +156,10 @@
+ 	status = "okay";
+ };
+ 
++&otg_sram {
++	status = "okay";
++};
++
+ &pio {
+ 	emac_power_pin_q5: emac_power_pin@0 {
+ 		allwinner,pins = "PH19";
+@@ -172,6 +176,11 @@
+ 	};
+ };
+ 
++&reg_usb0_vbus {
++	regulator-boot-on;
++	status = "okay";
++};
++
+ &reg_usb1_vbus {
+ 	status = "okay";
+ };
+@@ -186,7 +195,13 @@
+ 	status = "okay";
+ };
+ 
++&usb_otg {
++	dr_mode = "host";
++	status = "okay";
++};
++
+ &usbphy {
++	usb0_vbus-supply = <&reg_usb0_vbus>;
+ 	usb1_vbus-supply = <&reg_usb1_vbus>;
+ 	usb2_vbus-supply = <&reg_usb2_vbus>;
+ 	status = "okay";
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun4i-a10-olinuxino-lime.dts linux-sunxi-next/arch/arm/boot/dts/sun4i-a10-olinuxino-lime.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun4i-a10-olinuxino-lime.dts	2015-09-21 12:30:25.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun4i-a10-olinuxino-lime.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -124,6 +124,18 @@
+ 	};
+ };
+ 
++&i2c1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c1_pins_a>;
++	status = "okay";
++
++	eeprom: eeprom@50 {
++		compatible = "atmel,24c16";
++		reg = <0x50>;
++		pagesize = <16>;
++	};
++};
++
+ &mdio {
+ 	status = "okay";
+ 
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun5i-a10s-auxtek-t003.dts linux-sunxi-next/arch/arm/boot/dts/sun5i-a10s-auxtek-t003.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun5i-a10s-auxtek-t003.dts	1970-01-01 08:00:00.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun5i-a10s-auxtek-t003.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -0,0 +1,159 @@
++/*
++ * Copyright 2015 Hans de Goede <hdegoede@redhat.com>
++ *
++ * This file is dual-licensed: you can use it either under the terms
++ * of the GPL or the X11 license, at your option. Note that this dual
++ * licensing only applies to this file, and not this project as a
++ * whole.
++ *
++ *  a) This file is free software; you can redistribute it and/or
++ *     modify it under the terms of the GNU General Public License as
++ *     published by the Free Software Foundation; either version 2 of the
++ *     License, or (at your option) any later version.
++ *
++ *     This file is distributed in the hope that it will be useful,
++ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *     GNU General Public License for more details.
++ *
++ * Or, alternatively,
++ *
++ *  b) Permission is hereby granted, free of charge, to any person
++ *     obtaining a copy of this software and associated documentation
++ *     files (the "Software"), to deal in the Software without
++ *     restriction, including without limitation the rights to use,
++ *     copy, modify, merge, publish, distribute, sublicense, and/or
++ *     sell copies of the Software, and to permit persons to whom the
++ *     Software is furnished to do so, subject to the following
++ *     conditions:
++ *
++ *     The above copyright notice and this permission notice shall be
++ *     included in all copies or substantial portions of the Software.
++ *
++ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
++ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
++ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
++ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++ *     OTHER DEALINGS IN THE SOFTWARE.
++ */
++
++/dts-v1/;
++#include "sun5i-a10s.dtsi"
++#include "sunxi-common-regulators.dtsi"
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/pinctrl/sun4i-a10.h>
++
++/ {
++	model = "Auxtek t003 A10s hdmi tv-stick";
++	compatible = "allwinner,auxtek-t003", "allwinner,sun5i-a10s";
++
++	aliases {
++		serial0 = &uart0;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	leds {
++		compatible = "gpio-leds";
++		pinctrl-names = "default";
++		pinctrl-0 = <&led_pins_t003>;
++
++		red {
++			label = "t003-tv-dongle:red:usr";
++			gpios = <&pio 1 2 GPIO_ACTIVE_HIGH>; /* PB2 */
++			default-state = "on";
++		};
++	};
++};
++
++&ehci0 {
++	status = "okay";
++};
++
++&i2c0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c0_pins_a>;
++	status = "okay";
++
++	axp152: pmic@30 {
++		compatible = "x-powers,axp152";
++		reg = <0x30>;
++		interrupts = <0>;
++		interrupt-controller;
++		#interrupt-cells = <1>;
++	};
++};
++
++&mmc0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&mmc0_pins_a>, <&mmc0_cd_pin_t003>;
++	vmmc-supply = <&reg_vcc3v3>;
++	bus-width = <4>;
++	cd-gpios = <&pio 6 1 GPIO_ACTIVE_HIGH>; /* PG1 */
++	cd-inverted;
++	status = "okay";
++};
++
++&ohci0 {
++	status = "okay";
++};
++
++&otg_sram {
++	status = "okay";
++};
++
++&pio {
++	mmc0_cd_pin_t003: mmc0_cd_pin@0 {
++		allwinner,pins = "PG1";
++		allwinner,function = "gpio_in";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
++	};
++
++	led_pins_t003: led_pins@0 {
++		allwinner,pins = "PB2";
++		allwinner,function = "gpio_out";
++		allwinner,drive = <SUN4I_PINCTRL_20_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
++	};
++};
++
++&reg_usb0_vbus {
++	gpio = <&pio 6 13 GPIO_ACTIVE_HIGH>; /* PG13 */
++	status = "okay";
++};
++
++&reg_usb1_vbus {
++	gpio = <&pio 1 10 GPIO_ACTIVE_HIGH>; /* PB10 */
++	status = "okay";
++};
++
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_pins_a>;
++	status = "okay";
++};
++
++&usb0_vbus_pin_a {
++	allwinner,pins = "PG13";
++};
++
++&usb1_vbus_pin_a {
++	allwinner,pins = "PB10";
++};
++
++&usb_otg {
++	dr_mode = "host";
++	status = "okay";
++};
++
++&usbphy {
++	usb0_vbus-supply = <&reg_usb0_vbus>;
++	usb1_vbus-supply = <&reg_usb1_vbus>;
++	status = "okay";
++};
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun5i-a10s-olinuxino-micro.dts linux-sunxi-next/arch/arm/boot/dts/sun5i-a10s-olinuxino-micro.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun5i-a10s-olinuxino-micro.dts	2015-09-21 12:30:26.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun5i-a10s-olinuxino-micro.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -111,7 +111,7 @@
+ 	status = "okay";
+ 
+ 	at24@50 {
+-		compatible = "at,24c16";
++		compatible = "atmel,24c16";
+ 		pagesize = <16>;
+ 		reg = <0x50>;
+ 		read-only;
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun5i-a10s-wobo-i5.dts linux-sunxi-next/arch/arm/boot/dts/sun5i-a10s-wobo-i5.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun5i-a10s-wobo-i5.dts	1970-01-01 08:00:00.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun5i-a10s-wobo-i5.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -0,0 +1,224 @@
++/*
++ * Copyright 2015 Jelle van der Waa <jelle@vdwaa.nl>
++ *
++ * This file is dual-licensed: you can use it either under the terms
++ * of the GPL or the X11 license, at your option. Note that this dual
++ * licensing only applies to this file, and not this project as a
++ * whole.
++ *
++ *  a) This file is free software; you can redistribute it and/or
++ *     modify it under the terms of the GNU General Public License as
++ *     published by the Free Software Foundation; either version 2 of the
++ *     License, or (at your option) any later version.
++ *
++ *     This file is distributed in the hope that it will be useful,
++ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *     GNU General Public License for more details.
++ *
++ * Or, alternatively,
++ *
++ *  b) Permission is hereby granted, free of charge, to any person
++ *     obtaining a copy of this software and associated documentation
++ *     files (the "Software"), to deal in the Software without
++ *     restriction, including without limitation the rights to use,
++ *     copy, modify, merge, publish, distribute, sublicense, and/or
++ *     sell copies of the Software, and to permit persons to whom the
++ *     Software is furnished to do so, subject to the following
++ *     conditions:
++ *
++ *     The above copyright notice and this permission notice shall be
++ *     included in all copies or substantial portions of the Software.
++ *
++ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
++ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
++ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
++ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++ *     OTHER DEALINGS IN THE SOFTWARE.
++ */
++
++/dts-v1/;
++#include "sun5i-a10s.dtsi"
++#include "sunxi-common-regulators.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/interrupt-controller/irq.h>
++#include <dt-bindings/pinctrl/sun4i-a10.h>
++
++/ {
++	model = "A10s-Wobo i5";
++	compatible = "wobo,a10s-wobo-i5", "allwinner,sun5i-a10s";
++
++	aliases {
++		serial0 = &uart0;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	leds {
++		compatible = "gpio-leds";
++		pinctrl-names = "default";
++		pinctrl-0 = <&led_pins_wobo_i5>;
++
++		blue {
++			label = "a10s-wobo-i5:blue:usr";
++			gpios = <&pio 1 2 GPIO_ACTIVE_HIGH>;
++			default-state = "on";
++		};
++	};
++
++	reg_emac_3v3: emac-3v3 {
++		compatible = "regulator-fixed";
++		pinctrl-names = "default";
++		pinctrl-0 = <&emac_power_pin_wobo>;
++		regulator-name = "emac-3v3";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		enable-active-high;
++		gpio = <&pio 0 2 GPIO_ACTIVE_HIGH>;
++	};
++};
++
++&cpu0 {
++	cpu-supply = <&reg_dcdc2>;
++};
++
++&ehci0 {
++	status = "okay";
++};
++
++&emac {
++	pinctrl-names = "default";
++	pinctrl-0 = <&emac_pins_b>;
++	phy = <&phy1>;
++	status = "okay";
++};
++
++&emac_sram {
++	status = "okay";
++};
++
++&i2c0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c0_pins_a>;
++	status = "okay";
++
++	axp209: pmic@34 {
++		reg = <0x34>;
++		interrupts = <0>;
++	};
++};
++
++#include "axp209.dtsi"
++
++&mdio {
++	phy-supply = <&reg_emac_3v3>;
++	status = "okay";
++
++	phy1: ethernet-phy@1 {
++		reg = <1>;
++	};
++};
++
++&mmc0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&mmc0_pins_a>, <&mmc0_cd_pin_wobo_i5>;
++	vmmc-supply = <&reg_vcc3v3>;
++	bus-width = <4>;
++	cd-gpios = <&pio 1 3 GPIO_ACTIVE_HIGH>; /* PB3 */
++	cd-inverted;
++	status = "okay";
++};
++
++&ohci0 {
++	status = "okay";
++};
++
++&otg_sram {
++	status = "okay";
++};
++
++&pio {
++	led_pins_wobo_i5: led_pins@0 {
++		allwinner,pins = "PB2";
++		allwinner,function = "gpio_out";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
++	};
++
++	mmc0_cd_pin_wobo_i5: mmc0_cd_pin@0 {
++		allwinner,pins = "PB3";
++		allwinner,function = "gpio_in";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
++	};
++
++	emac_power_pin_wobo: emac_power_pin@0 {
++		allwinner,pins = "PA02";
++		allwinner,function = "gpio_out";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
++	};
++};
++
++&reg_dcdc2 {
++	regulator-always-on;
++	regulator-min-microvolt = <1000000>;
++	regulator-max-microvolt = <1400000>;
++	regulator-name = "vdd-cpu";
++};
++
++&reg_dcdc3 {
++	regulator-always-on;
++	regulator-min-microvolt = <1250000>;
++	regulator-max-microvolt = <1250000>;
++	regulator-name = "vdd-int-dll";
++};
++
++&reg_ldo1 {
++	regulator-name = "vdd-rtc";
++};
++
++&reg_ldo2 {
++	regulator-always-on;
++	regulator-min-microvolt = <3000000>;
++	regulator-max-microvolt = <3000000>;
++	regulator-name = "avcc";
++};
++
++&reg_ldo3 {
++	regulator-always-on;
++	regulator-min-microvolt = <3300000>;
++	regulator-max-microvolt = <3300000>;
++	regulator-name = "vcc-wifi";
++};
++
++&reg_usb1_vbus {
++	gpio = <&pio 6 12 GPIO_ACTIVE_HIGH>;
++	status = "okay";
++};
++
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_pins_a>;
++	status = "okay";
++};
++
++&usb_otg {
++	dr_mode = "host";
++	status = "okay";
++};
++
++&usb1_vbus_pin_a {
++	allwinner,pins = "PG12";
++};
++
++&usbphy {
++	usb1_vbus-supply = <&reg_usb1_vbus>;
++	status = "okay";
++};
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun5i-a10s.dtsi linux-sunxi-next/arch/arm/boot/dts/sun5i-a10s.dtsi
+--- linux-4.3-rc1/arch/arm/boot/dts/sun5i-a10s.dtsi	2015-09-21 12:30:26.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun5i-a10s.dtsi	2015-09-19 04:24:59.000000000 +0800
+@@ -77,6 +77,15 @@
+ 			clocks = <&pll5 1>, <&ahb_gates 36>, <&ahb_gates 44>;
+ 			status = "disabled";
+ 		};
++
++		framebuffer@2 {
++			compatible = "allwinner,simple-framebuffer",
++				     "simple-framebuffer";
++			allwinner,pipeline = "de_be0-lcd0-tve0";
++			clocks = <&pll5 1>, <&ahb_gates 34>, <&ahb_gates 36>,
++				 <&ahb_gates 44>;
++			status = "disabled";
++		};
+ 	};
+ 
+ 	clocks {
+@@ -211,6 +220,17 @@
+ 		allwinner,function = "emac";
+ 		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
+ 		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
++	};
++
++	emac_pins_b: emac0@1 {
++		allwinner,pins = "PD6", "PD7", "PD10",
++				"PD11", "PD12", "PD13", "PD14",
++				"PD15", "PD18", "PD19", "PD20",
++				"PD21", "PD22", "PD23", "PD24",
++				"PD25", "PD26", "PD27";
++		allwinner,function = "emac";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
+ 	};
+ 
+ 	mmc1_pins_a: mmc1@0 {
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun5i-a13-inet-98v-rev2.dts linux-sunxi-next/arch/arm/boot/dts/sun5i-a13-inet-98v-rev2.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun5i-a13-inet-98v-rev2.dts	1970-01-01 08:00:00.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun5i-a13-inet-98v-rev2.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -0,0 +1,227 @@
++/*
++ * Copyright 2015 Hans de Goede <hdegoede@redhat.com>
++ *
++ * This file is dual-licensed: you can use it either under the terms
++ * of the GPL or the X11 license, at your option. Note that this dual
++ * licensing only applies to this file, and not this project as a
++ * whole.
++ *
++ *  a) This file is free software; you can redistribute it and/or
++ *     modify it under the terms of the GNU General Public License as
++ *     published by the Free Software Foundation; either version 2 of the
++ *     License, or (at your option) any later version.
++ *
++ *     This file is distributed in the hope that it will be useful,
++ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *     GNU General Public License for more details.
++ *
++ * Or, alternatively,
++ *
++ *  b) Permission is hereby granted, free of charge, to any person
++ *     obtaining a copy of this software and associated documentation
++ *     files (the "Software"), to deal in the Software without
++ *     restriction, including without limitation the rights to use,
++ *     copy, modify, merge, publish, distribute, sublicense, and/or
++ *     sell copies of the Software, and to permit persons to whom the
++ *     Software is furnished to do so, subject to the following
++ *     conditions:
++ *
++ *     The above copyright notice and this permission notice shall be
++ *     included in all copies or substantial portions of the Software.
++ *
++ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
++ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
++ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
++ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++ *     OTHER DEALINGS IN THE SOFTWARE.
++ */
++
++/dts-v1/;
++#include "sun5i-a13.dtsi"
++#include "sunxi-common-regulators.dtsi"
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
++#include <dt-bindings/interrupt-controller/irq.h>
++#include <dt-bindings/pinctrl/sun4i-a10.h>
++
++/ {
++	model = "INet-98V Rev 02";
++	compatible = "primux,inet98v-rev2", "allwinner,sun5i-a13";
++
++	aliases {
++		serial0 = &uart1;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++};
++
++&cpu0 {
++	cpu-supply = <&reg_dcdc2>;
++};
++
++&ehci0 {
++	status = "okay";
++};
++
++&i2c0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c0_pins_a>;
++	status = "okay";
++
++	axp209: pmic@34 {
++		reg = <0x34>;
++		interrupts = <0>;
++	};
++};
++
++#include "axp209.dtsi"
++
++&i2c1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c1_pins_a>;
++	status = "okay";
++
++	pcf8563: rtc@51 {
++		compatible = "nxp,pcf8563";
++		reg = <0x51>;
++	};
++};
++
++&lradc {
++	vref-supply = <&reg_ldo2>;
++	status = "okay";
++
++	button@200 {
++		label = "Volume Up";
++		linux,code = <KEY_VOLUMEUP>;
++		channel = <0>;
++		voltage = <200000>;
++	};
++
++	button@400 {
++		label = "Volume Down";
++		linux,code = <KEY_VOLUMEDOWN>;
++		channel = <0>;
++		voltage = <400000>;
++	};
++};
++
++&mmc0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&mmc0_pins_a>, <&mmc0_cd_pin_inet98fv2>;
++	vmmc-supply = <&reg_vcc3v3>;
++	bus-width = <4>;
++	cd-gpios = <&pio 6 0 GPIO_ACTIVE_HIGH>; /* PG0 */
++	cd-inverted;
++	status = "okay";
++};
++
++&mmc2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&mmc2_pins_a>;
++	vmmc-supply = <&reg_vcc3v3>;
++	bus-width = <8>;
++	non-removable;
++	status = "okay";
++
++	mmccard: mmccard@0 {
++		reg = <0>;
++		compatible = "mmc-card";
++		broken-hpi;
++	};
++};
++
++&otg_sram {
++	status = "okay";
++};
++
++&pio {
++	mmc0_cd_pin_inet98fv2: mmc0_cd_pin@0 {
++		allwinner,pins = "PG0";
++		allwinner,function = "gpio_in";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
++	};
++
++	usb0_vbus_detect_pin: usb0_vbus_detect_pin@0 {
++		allwinner,pins = "PG1";
++		allwinner,function = "gpio_in";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_PULL_DOWN>;
++	};
++
++	usb0_id_detect_pin: usb0_id_detect_pin@0 {
++		allwinner,pins = "PG2";
++		allwinner,function = "gpio_in";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
++	};
++};
++
++&reg_dcdc2 {
++	regulator-always-on;
++	regulator-min-microvolt = <1000000>;
++	regulator-max-microvolt = <1400000>;
++	regulator-name = "vdd-cpu";
++};
++
++&reg_dcdc3 {
++	regulator-always-on;
++	regulator-min-microvolt = <1250000>;
++	regulator-max-microvolt = <1250000>;
++	regulator-name = "vdd-int-pll";
++};
++
++&reg_ldo1 {
++	regulator-name = "vdd-rtc";
++};
++
++&reg_ldo2 {
++	regulator-always-on;
++	regulator-min-microvolt = <3000000>;
++	regulator-max-microvolt = <3000000>;
++	regulator-name = "avcc";
++};
++
++&reg_ldo3 {
++	regulator-min-microvolt = <3300000>;
++	regulator-max-microvolt = <3300000>;
++	regulator-name = "vcc-wifi";
++};
++
++&reg_usb0_vbus {
++	gpio = <&pio 6 12 GPIO_ACTIVE_HIGH>; /* PG12 */
++	status = "okay";
++};
++
++&uart1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart1_pins_b>;
++	status = "okay";
++};
++
++&usb_otg {
++	dr_mode = "otg";
++	status = "okay";
++};
++
++&usb0_vbus_pin_a {
++	allwinner,pins = "PG12";
++};
++
++&usbphy {
++	pinctrl-names = "default";
++	pinctrl-0 = <&usb0_id_detect_pin>, <&usb0_vbus_detect_pin>;
++	usb0_id_det-gpio = <&pio 6 2 GPIO_ACTIVE_HIGH>; /* PG2 */
++	usb0_vbus_det-gpio = <&pio 6 1 GPIO_ACTIVE_HIGH>; /* PG1 */
++	usb0_vbus-supply = <&reg_usb0_vbus>;
++	usb1_vbus-supply = <&reg_ldo3>;
++	status = "okay";
++};
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun6i-a31-colombus.dts linux-sunxi-next/arch/arm/boot/dts/sun6i-a31-colombus.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun6i-a31-colombus.dts	2015-08-31 02:34:09.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun6i-a31-colombus.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -60,6 +60,16 @@
+ 	chosen {
+ 		stdout-path = "serial0:115200n8";
+ 	};
++
++	i2c_lcd: i2c@0 {
++		/* The lcd panel i2c interface is hooked up via gpios */
++		compatible = "i2c-gpio";
++		pinctrl-names = "default";
++		pinctrl-0 = <&i2c_lcd_pins>;
++		gpios = <&pio 0 23 GPIO_ACTIVE_HIGH>, /* PA23, sda */
++			<&pio 0 24 GPIO_ACTIVE_HIGH>; /* PA24, scl */
++		i2c-gpio,delay-us = <5>;
++	};
+ };
+ 
+ &ehci1 {
+@@ -82,6 +92,13 @@
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&i2c2_pins_a>;
+ 	status = "okay";
++
++	mma8452: mma8452@1d {
++		compatible = "fsl,mma8452";
++		reg = <0x1d>;
++		interrupt-parent = <&pio>;
++		interrupts = <0 9 IRQ_TYPE_LEVEL_LOW>; /* PA9 */
++	};
+ };
+ 
+ &mmc0 {
+@@ -112,6 +129,13 @@
+ 		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
+ 		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
+ 	};
++
++	i2c_lcd_pins: i2c_lcd_pin@0 {
++		allwinner,pins = "PA23", "PA24";
++		allwinner,function = "gpio_out";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
++	};
+ };
+ 
+ &reg_usb2_vbus {
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun6i-a31-hummingbird.dts linux-sunxi-next/arch/arm/boot/dts/sun6i-a31-hummingbird.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun6i-a31-hummingbird.dts	2015-08-31 02:34:09.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun6i-a31-hummingbird.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -73,7 +73,7 @@
+ 
+ &gmac {
+ 	pinctrl-names = "default";
+-	pinctrl-0 = <&gmac_pins_rgmii_a>;
++	pinctrl-0 = <&gmac_pins_rgmii_a>, <&gmac_phy_reset_pin_hummingbird>;
+ 	phy = <&phy1>;
+ 	phy-mode = "rgmii";
+ 	snps,reset-gpio = <&pio 0 21 GPIO_ACTIVE_HIGH>;
+@@ -146,6 +146,13 @@
+ };
+ 
+ &pio {
++	gmac_phy_reset_pin_hummingbird: gmac_phy_reset_pin@0 {
++		allwinner,pins = "PA21";
++		allwinner,function = "gpio_out";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
++	};
++
+ 	mmc0_cd_pin_hummingbird: mmc0_cd_pin@0 {
+ 		allwinner,pins = "PA8";
+ 		allwinner,function = "gpio_in";
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun6i-a31.dtsi linux-sunxi-next/arch/arm/boot/dts/sun6i-a31.dtsi
+--- linux-4.3-rc1/arch/arm/boot/dts/sun6i-a31.dtsi	2015-09-21 12:30:26.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun6i-a31.dtsi	2015-09-19 04:24:59.000000000 +0800
+@@ -691,6 +691,16 @@
+ 				allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
+ 			};
+ 
++			mmc2_8bit_emmc_pins: mmc2@0 {
++				allwinner,pins = "PC6", "PC7", "PC8", "PC9",
++						 "PC10", "PC11", "PC12",
++						 "PC13", "PC14", "PC15",
++						 "PC24";
++				allwinner,function = "mmc2";
++				allwinner,drive = <SUN4I_PINCTRL_30_MA>;
++				allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
++			};
++
+ 			gmac_pins_mii_a: gmac_mii@0 {
+ 				allwinner,pins = "PA0", "PA1", "PA2", "PA3",
+ 						"PA8", "PA9", "PA11",
+@@ -768,6 +778,13 @@
+ 			reg = <0x01c20ca0 0x20>;
+ 		};
+ 
++		lradc: lradc@01c22800 {
++			compatible = "allwinner,sun4i-a10-lradc-keys";
++			reg = <0x01c22800 0x100>;
++			interrupts = <GIC_SPI 30 IRQ_TYPE_LEVEL_HIGH>;
++			status = "disabled";
++		};
++
+ 		rtp: rtp@01c25000 {
+ 			compatible = "allwinner,sun6i-a31-ts";
+ 			reg = <0x01c25000 0x100>;
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun7i-a20-bananapi.dts linux-sunxi-next/arch/arm/boot/dts/sun7i-a20-bananapi.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun7i-a20-bananapi.dts	2015-08-31 02:34:09.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun7i-a20-bananapi.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -92,6 +92,10 @@
+ 	status = "okay";
+ };
+ 
++&cpu0 {
++	cpu-supply = <&reg_dcdc2>;
++};
++
+ &ehci0 {
+ 	status = "okay";
+ };
+@@ -119,13 +123,9 @@
+ 	status = "okay";
+ 
+ 	axp209: pmic@34 {
+-		compatible = "x-powers,axp209";
+ 		reg = <0x34>;
+ 		interrupt-parent = <&nmi_intc>;
+ 		interrupts = <0 IRQ_TYPE_LEVEL_LOW>;
+-
+-		interrupt-controller;
+-		#interrupt-cells = <1>;
+ 	};
+ };
+ 
+@@ -182,6 +182,33 @@
+ 	};
+ };
+ 
++#include "axp209.dtsi"
++
++&reg_dcdc2 {
++	regulator-always-on;
++	regulator-min-microvolt = <1000000>;
++	regulator-max-microvolt = <1400000>;
++	regulator-name = "vdd-cpu";
++};
++
++&reg_dcdc3 {
++	regulator-always-on;
++	regulator-min-microvolt = <1000000>;
++	regulator-max-microvolt = <1400000>;
++	regulator-name = "vdd-int-dll";
++};
++
++&reg_ldo1 {
++	regulator-name = "vdd-rtc";
++};
++
++&reg_ldo2 {
++	regulator-always-on;
++	regulator-min-microvolt = <3000000>;
++	regulator-max-microvolt = <3000000>;
++	regulator-name = "avcc";
++};
++
+ &reg_usb1_vbus {
+ 	status = "okay";
+ };
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun7i-a20-cubieboard2.dts linux-sunxi-next/arch/arm/boot/dts/sun7i-a20-cubieboard2.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun7i-a20-cubieboard2.dts	2015-08-31 02:34:09.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun7i-a20-cubieboard2.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -150,6 +150,10 @@
+ 	status = "okay";
+ };
+ 
++&otg_sram {
++	status = "okay";
++};
++
+ &pio {
+ 	led_pins_cubieboard2: led_pins@0 {
+ 		allwinner,pins = "PH20", "PH21";
+@@ -157,12 +161,24 @@
+ 		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
+ 		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
+ 	};
++
++	usb0_id_detect_pin: usb0_id_detect_pin@0 {
++		allwinner,pins = "PH4";
++		allwinner,function = "gpio_in";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
++	};
+ };
+ 
+ &reg_ahci_5v {
+ 	status = "okay";
+ };
+ 
++&usb_otg {
++	dr_mode = "otg";
++	status = "okay";
++};
++
+ #include "axp209.dtsi"
+ 
+ &reg_dcdc2 {
+@@ -205,6 +221,9 @@
+ };
+ 
+ &usbphy {
++	pinctrl-names = "default";
++	pinctrl-0 = <&usb0_id_detect_pin>;
++	usb0_id_det-gpio = <&pio 7 4 GPIO_ACTIVE_HIGH>; /* PH4 */
+ 	usb1_vbus-supply = <&reg_usb1_vbus>;
+ 	usb2_vbus-supply = <&reg_usb2_vbus>;
+ 	status = "okay";
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun7i-a20-olinuxino-lime.dts linux-sunxi-next/arch/arm/boot/dts/sun7i-a20-olinuxino-lime.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun7i-a20-olinuxino-lime.dts	2015-09-21 12:30:26.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun7i-a20-olinuxino-lime.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -117,6 +117,18 @@
+ 	};
+ };
+ 
++&i2c1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c1_pins_a>;
++	status = "okay";
++
++	eeprom: eeprom@50 {
++		compatible = "atmel,24c16";
++		reg = <0x50>;
++		pagesize = <16>;
++	};
++};
++
+ &mmc0 {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&mmc0_pins_a>, <&mmc0_cd_pin_reference_design>;
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun7i-a20-olinuxino-lime2.dts linux-sunxi-next/arch/arm/boot/dts/sun7i-a20-olinuxino-lime2.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun7i-a20-olinuxino-lime2.dts	2015-08-31 02:34:09.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun7i-a20-olinuxino-lime2.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -170,6 +170,12 @@
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&i2c1_pins_a>;
+ 	status = "okay";
++
++	eeprom: eeprom@50 {
++		compatible = "atmel,24c16";
++		reg = <0x50>;
++		pagesize = <16>;
++	};
+ };
+ 
+ &mmc0 {
+@@ -190,6 +196,10 @@
+ 	status = "okay";
+ };
+ 
++&otg_sram {
++	status = "okay";
++};
++
+ &pio {
+ 	ahci_pwr_pin_olinuxinolime: ahci_pwr_pin@1 {
+ 		allwinner,pins = "PC3";
+@@ -204,6 +214,27 @@
+ 		allwinner,drive = <SUN4I_PINCTRL_20_MA>;
+ 		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
+ 	};
++
++	usb0_id_detect_pin: usb0_id_detect_pin@0 {
++		allwinner,pins = "PH4";
++		allwinner,function = "gpio_in";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
++	};
++
++	usb0_vbus_detect_pin: usb0_vbus_detect_pin@0 {
++		allwinner,pins = "PH5";
++		allwinner,function = "gpio_in";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_PULL_DOWN>;
++	};
++
++	usb0_vbus_pin_lime2: usb0_vbus_pin@0 {
++		allwinner,pins = "PC17";
++		allwinner,function = "gpio_out";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
++	};
+ };
+ 
+ &reg_ahci_5v {
+@@ -212,6 +243,12 @@
+ 	status = "okay";
+ };
+ 
++&reg_usb0_vbus {
++	pinctrl-0 = <&usb0_vbus_pin_lime2>;
++	gpio = <&pio 2 17 GPIO_ACTIVE_HIGH>;
++	status = "okay";
++};
++
+ &reg_usb1_vbus {
+ 	status = "okay";
+ };
+@@ -226,7 +263,17 @@
+ 	status = "okay";
+ };
+ 
++&usb_otg {
++	dr_mode = "otg";
++	status = "okay";
++};
++
+ &usbphy {
++	pinctrl-names = "default";
++	pinctrl-0 = <&usb0_id_detect_pin>, <&usb0_vbus_detect_pin>;
++	usb0_id_det-gpio = <&pio 7 4 GPIO_ACTIVE_HIGH>; /* PH4 */
++	usb0_vbus_det-gpio = <&pio 7 5 GPIO_ACTIVE_HIGH>; /* PH5 */
++	usb0_vbus-supply = <&reg_usb0_vbus>;
+ 	usb1_vbus-supply = <&reg_usb1_vbus>;
+ 	usb2_vbus-supply = <&reg_usb2_vbus>;
+ 	status = "okay";
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun7i-a20-olinuxino-micro.dts linux-sunxi-next/arch/arm/boot/dts/sun7i-a20-olinuxino-micro.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun7i-a20-olinuxino-micro.dts	2015-09-21 12:30:26.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun7i-a20-olinuxino-micro.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -125,6 +125,12 @@
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&i2c1_pins_a>;
+ 	status = "okay";
++
++	eeprom: eeprom@50 {
++		compatible = "atmel,24c16";
++		reg = <0x50>;
++		pagesize = <16>;
++	};
+ };
+ 
+ &i2c2 {
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun7i-a20-pcduino3.dts linux-sunxi-next/arch/arm/boot/dts/sun7i-a20-pcduino3.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun7i-a20-pcduino3.dts	2015-08-31 02:34:09.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun7i-a20-pcduino3.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -111,6 +111,10 @@
+ 	allwinner,pins = "PH2";
+ };
+ 
++&cpu0 {
++	cpu-supply = <&reg_dcdc2>;
++};
++
+ &ehci0 {
+ 	status = "okay";
+ };
+@@ -137,16 +141,14 @@
+ 	status = "okay";
+ 
+ 	axp209: pmic@34 {
+-		compatible = "x-powers,axp209";
+ 		reg = <0x34>;
+ 		interrupt-parent = <&nmi_intc>;
+ 		interrupts = <0 IRQ_TYPE_LEVEL_LOW>;
+-
+-		interrupt-controller;
+-		#interrupt-cells = <1>;
+ 	};
+ };
+ 
++#include "axp209.dtsi"
++
+ &ir0 {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&ir0_rx_pins_a>;
+@@ -171,6 +173,10 @@
+ 	status = "okay";
+ };
+ 
++&otg_sram {
++	status = "okay";
++};
++
+ &pio {
+ 	led_pins_pcduino3: led_pins@0 {
+ 		allwinner,pins = "PH15", "PH16";
+@@ -185,6 +191,13 @@
+ 		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
+ 		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
+ 	};
++
++	usb0_id_detect_pin: usb0_id_detect_pin@0 {
++		allwinner,pins = "PH4";
++		allwinner,function = "gpio_in";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
++	};
+ };
+ 
+ &reg_ahci_5v {
+@@ -192,6 +205,31 @@
+ 	status = "okay";
+ };
+ 
++&reg_dcdc2 {
++	regulator-always-on;
++	regulator-min-microvolt = <1000000>;
++	regulator-max-microvolt = <1400000>;
++	regulator-name = "vdd-cpu";
++};
++
++&reg_dcdc3 {
++	regulator-always-on;
++	regulator-min-microvolt = <1000000>;
++	regulator-max-microvolt = <1400000>;
++	regulator-name = "vdd-int-pll";
++};
++
++&reg_ldo1 {
++	regulator-name = "vdd-rtc";
++};
++
++&reg_ldo2 {
++	regulator-always-on;
++	regulator-min-microvolt = <3000000>;
++	regulator-max-microvolt = <3000000>;
++	regulator-name = "avcc";
++};
++
+ &reg_usb1_vbus {
+ 	status = "okay";
+ };
+@@ -206,7 +244,15 @@
+ 	status = "okay";
+ };
+ 
++&usb_otg {
++	dr_mode = "otg";
++	status = "okay";
++};
++
+ &usbphy {
++	pinctrl-names = "default";
++	pinctrl-0 = <&usb0_id_detect_pin>;
++	usb0_id_det-gpio = <&pio 7 4 GPIO_ACTIVE_HIGH>; /* PH4 */
+ 	usb1_vbus-supply = <&reg_usb1_vbus>;
+ 	usb2_vbus-supply = <&reg_usb2_vbus>;
+ 	status = "okay";
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun8i-a23-gt90h-v4.dts linux-sunxi-next/arch/arm/boot/dts/sun8i-a23-gt90h-v4.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun8i-a23-gt90h-v4.dts	1970-01-01 08:00:00.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun8i-a23-gt90h-v4.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -0,0 +1,145 @@
++/*
++ * Copyright 2015 Hans de Goede <hdegoede@redhat.com>
++ *
++ * This file is dual-licensed: you can use it either under the terms
++ * of the GPL or the X11 license, at your option. Note that this dual
++ * licensing only applies to this file, and not this project as a
++ * whole.
++ *
++ *  a) This file is free software; you can redistribute it and/or
++ *     modify it under the terms of the GNU General Public License as
++ *     published by the Free Software Foundation; either version 2 of the
++ *     License, or (at your option) any later version.
++ *
++ *     This file is distributed in the hope that it will be useful,
++ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *     GNU General Public License for more details.
++ *
++ * Or, alternatively,
++ *
++ *  b) Permission is hereby granted, free of charge, to any person
++ *     obtaining a copy of this software and associated documentation
++ *     files (the "Software"), to deal in the Software without
++ *     restriction, including without limitation the rights to use,
++ *     copy, modify, merge, publish, distribute, sublicense, and/or
++ *     sell copies of the Software, and to permit persons to whom the
++ *     Software is furnished to do so, subject to the following
++ *     conditions:
++ *
++ *     The above copyright notice and this permission notice shall be
++ *     included in all copies or substantial portions of the Software.
++ *
++ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
++ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
++ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
++ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++ *     OTHER DEALINGS IN THE SOFTWARE.
++ */
++
++/dts-v1/;
++#include "sun8i-a23.dtsi"
++#include "sunxi-common-regulators.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
++#include <dt-bindings/pinctrl/sun4i-a10.h>
++
++/ {
++	model = "Allwinner GT90H Quad Core Tablet (v4)";
++	compatible = "allwinner,gt90h-v4", "allwinner,sun8i-a33";
++
++	aliases {
++		serial0 = &r_uart;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++};
++
++&ehci0 {
++	status = "okay";
++};
++
++&i2c0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c0_pins_a>;
++	status = "okay";
++};
++
++&i2c1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c1_pins_a>;
++	status = "okay";
++};
++
++&lradc {
++	vref-supply = <&reg_vcc3v0>;
++	status = "okay";
++
++	button@200 {
++		label = "Volume Up";
++		linux,code = <KEY_VOLUMEUP>;
++		channel = <0>;
++		voltage = <200000>;
++	};
++
++	button@400 {
++		label = "Volume Down";
++		linux,code = <KEY_VOLUMEDOWN>;
++		channel = <0>;
++		voltage = <400000>;
++	};
++
++	button@600 {
++		label = "Back";
++		linux,code = <KEY_BACK>;
++		channel = <0>;
++		voltage = <600000>;
++	};
++};
++
++&mmc0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&mmc0_pins_a>, <&mmc0_cd_pin_gt90h>;
++	/* FIXME this really is aldo1, correct once we've pmic support */
++	vmmc-supply = <&reg_vcc3v0>;
++	bus-width = <4>;
++	cd-gpios = <&pio 1 4 GPIO_ACTIVE_HIGH>; /* PB4 */
++	cd-inverted;
++	status = "okay";
++};
++
++&pio {
++	mmc0_cd_pin_gt90h: mmc0_cd_pin@0 {
++		allwinner,pins = "PB4";
++		allwinner,function = "gpio_in";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
++	};
++};
++
++&r_uart {
++	pinctrl-names = "default";
++	pinctrl-0 = <&r_uart_pins_a>;
++	status = "okay";
++};
++
++/*
++ * FIXME for now we only support host mode and rely on u-boot to have
++ * turned on Vbus which is controlled by the axp223 pmic on the board.
++ *
++ * Once we have axp223 support we should switch to fully supporting otg.
++ */
++&usb_otg {
++	dr_mode = "host";
++	status = "okay";
++};
++
++&usbphy {
++	status = "okay";
++};
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun8i-a23-ippo-q8h-v5.dts linux-sunxi-next/arch/arm/boot/dts/sun8i-a23-ippo-q8h-v5.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun8i-a23-ippo-q8h-v5.dts	2015-09-21 12:30:26.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun8i-a23-ippo-q8h-v5.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -44,35 +44,11 @@
+ 
+ /dts-v1/;
+ #include "sun8i-a23.dtsi"
+-#include "sunxi-common-regulators.dtsi"
+-
+-#include <dt-bindings/gpio/gpio.h>
+-#include <dt-bindings/input/input.h>
+-#include <dt-bindings/pinctrl/sun4i-a10.h>
++#include "sun8i-q8-common.dtsi"
+ 
+ / {
+ 	model = "Ippo Q8H Dual Core Tablet (v5)";
+ 	compatible = "ippo,q8h-v5", "allwinner,sun8i-a23";
+-
+-	aliases {
+-		serial0 = &r_uart;
+-	};
+-
+-	chosen {
+-		stdout-path = "serial0:115200n8";
+-	};
+-};
+-
+-&i2c0 {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&i2c0_pins_a>;
+-	status = "okay";
+-};
+-
+-&i2c1 {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&i2c1_pins_a>;
+-	status = "okay";
+ };
+ 
+ &i2c2 {
+@@ -82,50 +58,12 @@
+ 	status = "failed";
+ };
+ 
+-&lradc {
+-	vref-supply = <&reg_vcc3v0>;
+-	status = "okay";
+-
+-	button@200 {
+-		label = "Volume Up";
+-		linux,code = <KEY_VOLUMEUP>;
+-		channel = <0>;
+-		voltage = <200000>;
+-	};
+-
+-	button@400 {
+-		label = "Volume Down";
+-		linux,code = <KEY_VOLUMEDOWN>;
+-		channel = <0>;
+-		voltage = <400000>;
+-	};
+-};
+-
+-&mmc0 {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&mmc0_pins_a>, <&mmc0_cd_pin_q8h>;
+-	vmmc-supply = <&reg_vcc3v0>;
+-	bus-width = <4>;
+-	cd-gpios = <&pio 1 4 GPIO_ACTIVE_HIGH>; /* PB4 */
+-	cd-inverted;
+-	status = "okay";
+-};
+-
+-&pio {
+-	mmc0_cd_pin_q8h: mmc0_cd_pin@0 {
+-		allwinner,pins = "PB4";
+-		allwinner,function = "gpio_in";
+-		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
+-		allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
+-	};
+-};
+-
+-&r_uart {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&r_uart_pins_a>;
+-	status = "okay";
+-};
+-
++/*
++ * FIXME for now we only support host mode and rely on u-boot to have
++ * turned on Vbus which is controlled by the axp223 pmic on the board.
++ *
++ * Once we have axp223 support we should switch to fully supporting otg.
++ */
+ &usb_otg {
+ 	dr_mode = "host";
+ 	status = "okay";
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun8i-a33-ippo-q8h-v1.2.dts linux-sunxi-next/arch/arm/boot/dts/sun8i-a33-ippo-q8h-v1.2.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun8i-a33-ippo-q8h-v1.2.dts	2015-09-21 12:30:26.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun8i-a33-ippo-q8h-v1.2.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -42,79 +42,11 @@
+ 
+ /dts-v1/;
+ #include "sun8i-a33.dtsi"
+-#include "sunxi-common-regulators.dtsi"
+-
+-#include <dt-bindings/gpio/gpio.h>
+-#include <dt-bindings/input/input.h>
+-#include <dt-bindings/pinctrl/sun4i-a10.h>
++#include "sun8i-q8-common.dtsi"
+ 
+ / {
+ 	model = "Ippo Q8H Quad Core Tablet (v1.2)";
+ 	compatible = "ippo,a33-q8h-v1.2", "allwinner,sun8i-a33";
+-
+-	aliases {
+-		serial0 = &r_uart;
+-	};
+-
+-	chosen {
+-		stdout-path = "serial0:115200n8";
+-	};
+-};
+-
+-&i2c0 {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&i2c0_pins_a>;
+-	status = "okay";
+-};
+-
+-&i2c1 {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&i2c1_pins_a>;
+-	status = "okay";
+-};
+-
+-&lradc {
+-	vref-supply = <&reg_vcc3v0>;
+-	status = "okay";
+-
+-	button@200 {
+-		label = "Volume Up";
+-		linux,code = <KEY_VOLUMEUP>;
+-		channel = <0>;
+-		voltage = <200000>;
+-	};
+-
+-	button@400 {
+-		label = "Volume Down";
+-		linux,code = <KEY_VOLUMEDOWN>;
+-		channel = <0>;
+-		voltage = <400000>;
+-	};
+-};
+-
+-&mmc0 {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&mmc0_pins_a>, <&mmc0_cd_pin_q8h>;
+-	vmmc-supply = <&reg_vcc3v0>;
+-	bus-width = <4>;
+-	cd-gpios = <&pio 1 4 GPIO_ACTIVE_HIGH>; /* PB4 */
+-	cd-inverted;
+-	status = "okay";
+-};
+-
+-&pio {
+-	mmc0_cd_pin_q8h: mmc0_cd_pin@0 {
+-		allwinner,pins = "PB4";
+-		allwinner,function = "gpio_in";
+-		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
+-		allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
+-	};
+-};
+-
+-&r_uart {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&r_uart_pins_a>;
+-	status = "okay";
+ };
+ 
+ /*
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun8i-a33-q8-tzx-723q4.dts linux-sunxi-next/arch/arm/boot/dts/sun8i-a33-q8-tzx-723q4.dts
+--- linux-4.3-rc1/arch/arm/boot/dts/sun8i-a33-q8-tzx-723q4.dts	1970-01-01 08:00:00.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun8i-a33-q8-tzx-723q4.dts	2015-09-19 04:24:59.000000000 +0800
+@@ -0,0 +1,70 @@
++/*
++ * Copyright 2015 Hans de Goede <hdegoede@redhat.com>
++ *
++ * This file is dual-licensed: you can use it either under the terms
++ * of the GPL or the X11 license, at your option. Note that this dual
++ * licensing only applies to this file, and not this project as a
++ * whole.
++ *
++ *  a) This file is free software; you can redistribute it and/or
++ *     modify it under the terms of the GNU General Public License as
++ *     published by the Free Software Foundation; either version 2 of the
++ *     License, or (at your option) any later version.
++ *
++ *     This file is distributed in the hope that it will be useful,
++ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *     GNU General Public License for more details.
++ *
++ * Or, alternatively,
++ *
++ *  b) Permission is hereby granted, free of charge, to any person
++ *     obtaining a copy of this software and associated documentation
++ *     files (the "Software"), to deal in the Software without
++ *     restriction, including without limitation the rights to use,
++ *     copy, modify, merge, publish, distribute, sublicense, and/or
++ *     sell copies of the Software, and to permit persons to whom the
++ *     Software is furnished to do so, subject to the following
++ *     conditions:
++ *
++ *     The above copyright notice and this permission notice shall be
++ *     included in all copies or substantial portions of the Software.
++ *
++ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
++ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
++ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
++ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++ *     OTHER DEALINGS IN THE SOFTWARE.
++ */
++
++/dts-v1/;
++#include "sun8i-a33.dtsi"
++#include "sun8i-q8-common.dtsi"
++
++/ {
++	model = "Q8 TZX 723Q4 Quad Core Tablet";
++	compatible = "tzx,q8-tzx-723q4", "allwinner,sun8i-a33";
++};
++
++/* The TZX 723Q[a]4 PCB mmc only works properly with a lower drive-strenght */
++&mmc0_pins_a {
++	allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++};
++
++/*
++ * FIXME for now we only support host mode and rely on u-boot to have
++ * turned on Vbus which is controlled by the axp223 pmic on the board.
++ *
++ * Once we have axp223 support we should switch to fully supporting otg.
++ */
++&usb_otg {
++	dr_mode = "host";
++	status = "okay";
++};
++
++&usbphy {
++	status = "okay";
++};
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sun8i-q8-common.dtsi linux-sunxi-next/arch/arm/boot/dts/sun8i-q8-common.dtsi
+--- linux-4.3-rc1/arch/arm/boot/dts/sun8i-q8-common.dtsi	1970-01-01 08:00:00.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sun8i-q8-common.dtsi	2015-09-19 04:24:59.000000000 +0800
+@@ -0,0 +1,77 @@
++/*
++ * Copyright 2015 Hans de Goede <hdegoede@redhat.com>
++ *
++ * This file is dual-licensed: you can use it either under the terms
++ * of the GPL or the X11 license, at your option. Note that this dual
++ * licensing only applies to this file, and not this project as a
++ * whole.
++ *
++ *  a) This file is free software; you can redistribute it and/or
++ *     modify it under the terms of the GNU General Public License as
++ *     published by the Free Software Foundation; either version 2 of the
++ *     License, or (at your option) any later version.
++ *
++ *     This file is distributed in the hope that it will be useful,
++ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *     GNU General Public License for more details.
++ *
++ * Or, alternatively,
++ *
++ *  b) Permission is hereby granted, free of charge, to any person
++ *     obtaining a copy of this software and associated documentation
++ *     files (the "Software"), to deal in the Software without
++ *     restriction, including without limitation the rights to use,
++ *     copy, modify, merge, publish, distribute, sublicense, and/or
++ *     sell copies of the Software, and to permit persons to whom the
++ *     Software is furnished to do so, subject to the following
++ *     conditions:
++ *
++ *     The above copyright notice and this permission notice shall be
++ *     included in all copies or substantial portions of the Software.
++ *
++ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
++ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
++ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
++ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++ *     OTHER DEALINGS IN THE SOFTWARE.
++ */
++#include "sunxi-q8-common.dtsi"
++
++/ {
++	aliases {
++		serial0 = &r_uart;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++};
++
++&mmc0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&mmc0_pins_a>, <&mmc0_cd_pin_q8>;
++	vmmc-supply = <&reg_vcc3v0>;
++	bus-width = <4>;
++	cd-gpios = <&pio 1 4 GPIO_ACTIVE_HIGH>; /* PB4 */
++	cd-inverted;
++	status = "okay";
++};
++
++&pio {
++	mmc0_cd_pin_q8: mmc0_cd_pin@0 {
++		allwinner,pins = "PB4";
++		allwinner,function = "gpio_in";
++		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
++		allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
++	};
++};
++
++&r_uart {
++	pinctrl-names = "default";
++	pinctrl-0 = <&r_uart_pins_a>;
++	status = "okay";
++};
+diff -uNr linux-4.3-rc1/arch/arm/boot/dts/sunxi-q8-common.dtsi linux-sunxi-next/arch/arm/boot/dts/sunxi-q8-common.dtsi
+--- linux-4.3-rc1/arch/arm/boot/dts/sunxi-q8-common.dtsi	1970-01-01 08:00:00.000000000 +0800
++++ linux-sunxi-next/arch/arm/boot/dts/sunxi-q8-common.dtsi	2015-09-19 04:24:59.000000000 +0800
+@@ -0,0 +1,77 @@
++/*
++ * Copyright 2015 Hans de Goede <hdegoede@redhat.com>
++ *
++ * This file is dual-licensed: you can use it either under the terms
++ * of the GPL or the X11 license, at your option. Note that this dual
++ * licensing only applies to this file, and not this project as a
++ * whole.
++ *
++ *  a) This file is free software; you can redistribute it and/or
++ *     modify it under the terms of the GNU General Public License as
++ *     published by the Free Software Foundation; either version 2 of the
++ *     License, or (at your option) any later version.
++ *
++ *     This file is distributed in the hope that it will be useful,
++ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *     GNU General Public License for more details.
++ *
++ * Or, alternatively,
++ *
++ *  b) Permission is hereby granted, free of charge, to any person
++ *     obtaining a copy of this software and associated documentation
++ *     files (the "Software"), to deal in the Software without
++ *     restriction, including without limitation the rights to use,
++ *     copy, modify, merge, publish, distribute, sublicense, and/or
++ *     sell copies of the Software, and to permit persons to whom the
++ *     Software is furnished to do so, subject to the following
++ *     conditions:
++ *
++ *     The above copyright notice and this permission notice shall be
++ *     included in all copies or substantial portions of the Software.
++ *
++ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
++ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
++ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
++ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++ *     OTHER DEALINGS IN THE SOFTWARE.
++ */
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
++#include <dt-bindings/pinctrl/sun4i-a10.h>
++#include "sunxi-common-regulators.dtsi"
++
++&i2c0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c0_pins_a>;
++	status = "okay";
++};
++
++&i2c1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c1_pins_a>;
++	status = "okay";
++};
++
++&lradc {
++	vref-supply = <&reg_vcc3v0>;
++	status = "okay";
++
++	button@200 {
++		label = "Volume Up";
++		linux,code = <KEY_VOLUMEUP>;
++		channel = <0>;
++		voltage = <200000>;
++	};
++
++	button@400 {
++		label = "Volume Down";
++		linux,code = <KEY_VOLUMEDOWN>;
++		channel = <0>;
++		voltage = <400000>;
++	};
++};
+diff -uNr linux-4.3-rc1/arch/arm/configs/sunxi_defconfig linux-sunxi-next/arch/arm/configs/sunxi_defconfig
+--- linux-4.3-rc1/arch/arm/configs/sunxi_defconfig	2015-09-21 12:30:26.000000000 +0800
++++ linux-sunxi-next/arch/arm/configs/sunxi_defconfig	2015-09-19 04:24:59.000000000 +0800
+@@ -63,6 +63,7 @@
+ CONFIG_INPUT_MISC=y
+ CONFIG_INPUT_AXP20X_PEK=y
+ CONFIG_INPUT_TOUCHSCREEN=y
++CONFIG_KEYBOARD_SUN4I_LRADC=y
+ CONFIG_TOUCHSCREEN_SUN4I=y
+ CONFIG_SERIAL_8250=y
+ CONFIG_SERIAL_8250_CONSOLE=y
+diff -uNr linux-4.3-rc1/sound/soc/Kconfig linux-sunxi-next/sound/soc/Kconfig
+--- linux-4.3-rc1/sound/soc/Kconfig	2015-09-21 12:31:26.000000000 +0800
++++ linux-sunxi-next/sound/soc/Kconfig	2015-09-19 04:25:09.000000000 +0800
+@@ -58,6 +58,7 @@
+ source "sound/soc/sirf/Kconfig"
+ source "sound/soc/spear/Kconfig"
+ source "sound/soc/sti/Kconfig"
++source "sound/soc/sunxi/Kconfig"
+ source "sound/soc/tegra/Kconfig"
+ source "sound/soc/txx9/Kconfig"
+ source "sound/soc/ux500/Kconfig"
+diff -uNr linux-4.3-rc1/sound/soc/Makefile linux-sunxi-next/sound/soc/Makefile
+--- linux-4.3-rc1/sound/soc/Makefile	2015-09-21 12:31:26.000000000 +0800
++++ linux-sunxi-next/sound/soc/Makefile	2015-09-19 04:25:09.000000000 +0800
+@@ -40,6 +40,7 @@
+ obj-$(CONFIG_SND_SOC)	+= sirf/
+ obj-$(CONFIG_SND_SOC)	+= spear/
+ obj-$(CONFIG_SND_SOC)	+= sti/
++obj-$(CONFIG_SND_SOC)	+= sunxi/
+ obj-$(CONFIG_SND_SOC)	+= tegra/
+ obj-$(CONFIG_SND_SOC)	+= txx9/
+ obj-$(CONFIG_SND_SOC)	+= ux500/
+diff -uNr linux-4.3-rc1/sound/soc/sunxi/Kconfig linux-sunxi-next/sound/soc/sunxi/Kconfig
+--- linux-4.3-rc1/sound/soc/sunxi/Kconfig	1970-01-01 08:00:00.000000000 +0800
++++ linux-sunxi-next/sound/soc/sunxi/Kconfig	2015-09-19 04:25:10.000000000 +0800
+@@ -0,0 +1,11 @@
++menu "Allwinner SoC Audio support"
++
++config SND_SUN4I_CODEC
++	tristate "Allwinner A10 Codec Support"
++	select SND_SOC_GENERIC_DMAENGINE_PCM
++	select REGMAP_MMIO
++	help
++	  Select Y or M to add support for the Codec embedded in the Allwinner
++	  A10 and affiliated SoCs.
++
++endmenu
+diff -uNr linux-4.3-rc1/sound/soc/sunxi/Makefile linux-sunxi-next/sound/soc/sunxi/Makefile
+--- linux-4.3-rc1/sound/soc/sunxi/Makefile	1970-01-01 08:00:00.000000000 +0800
++++ linux-sunxi-next/sound/soc/sunxi/Makefile	2015-09-19 04:25:10.000000000 +0800
+@@ -0,0 +1,2 @@
++obj-$(CONFIG_SND_SUN4I_CODEC) += sun4i-codec.o
++
+diff -uNr linux-4.3-rc1/sound/soc/sunxi/sun4i-codec.c linux-sunxi-next/sound/soc/sunxi/sun4i-codec.c
+--- linux-4.3-rc1/sound/soc/sunxi/sun4i-codec.c	1970-01-01 08:00:00.000000000 +0800
++++ linux-sunxi-next/sound/soc/sunxi/sun4i-codec.c	2015-09-19 04:25:10.000000000 +0800
+@@ -0,0 +1,720 @@
++/*
++ * Copyright 2014 Emilio López <emilio@elopez.com.ar>
++ * Copyright 2014 Jon Smirl <jonsmirl@gmail.com>
++ * Copyright 2015 Maxime Ripard <maxime.ripard@free-electrons.com>
++ *
++ * Based on the Allwinner SDK driver, released under the GPL.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <linux/init.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <linux/delay.h>
++#include <linux/slab.h>
++#include <linux/of.h>
++#include <linux/of_platform.h>
++#include <linux/of_address.h>
++#include <linux/clk.h>
++#include <linux/regmap.h>
++
++#include <sound/core.h>
++#include <sound/pcm.h>
++#include <sound/pcm_params.h>
++#include <sound/soc.h>
++#include <sound/tlv.h>
++#include <sound/initval.h>
++#include <sound/dmaengine_pcm.h>
++
++/* Codec DAC register offsets and bit fields */
++#define SUN4I_CODEC_DAC_DPC			(0x00)
++#define SUN4I_CODEC_DAC_DPC_EN_DA			(31)
++#define SUN4I_CODEC_DAC_DPC_DVOL			(12)
++#define SUN4I_CODEC_DAC_FIFOC			(0x04)
++#define SUN4I_CODEC_DAC_FIFOC_DAC_FS			(29)
++#define SUN4I_CODEC_DAC_FIFOC_FIR_VERSION		(28)
++#define SUN4I_CODEC_DAC_FIFOC_SEND_LASAT		(26)
++#define SUN4I_CODEC_DAC_FIFOC_TX_FIFO_MODE		(24)
++#define SUN4I_CODEC_DAC_FIFOC_DRQ_CLR_CNT		(21)
++#define SUN4I_CODEC_DAC_FIFOC_TX_TRIG_LEVEL		(8)
++#define SUN4I_CODEC_DAC_FIFOC_MONO_EN			(6)
++#define SUN4I_CODEC_DAC_FIFOC_TX_SAMPLE_BITS		(5)
++#define SUN4I_CODEC_DAC_FIFOC_DAC_DRQ_EN		(4)
++#define SUN4I_CODEC_DAC_FIFOC_FIFO_FLUSH		(0)
++#define SUN4I_CODEC_DAC_FIFOS			(0x08)
++#define SUN4I_CODEC_DAC_TXDATA			(0x0c)
++#define SUN4I_CODEC_DAC_ACTL			(0x10)
++#define SUN4I_CODEC_DAC_ACTL_DACAENR			(31)
++#define SUN4I_CODEC_DAC_ACTL_DACAENL			(30)
++#define SUN4I_CODEC_DAC_ACTL_MIXEN			(29)
++#define SUN4I_CODEC_DAC_ACTL_LDACLMIXS			(15)
++#define SUN4I_CODEC_DAC_ACTL_RDACRMIXS			(14)
++#define SUN4I_CODEC_DAC_ACTL_LDACRMIXS			(13)
++#define SUN4I_CODEC_DAC_ACTL_DACPAS			(8)
++#define SUN4I_CODEC_DAC_ACTL_MIXPAS			(7)
++#define SUN4I_CODEC_DAC_ACTL_PA_MUTE			(6)
++#define SUN4I_CODEC_DAC_ACTL_PA_VOL			(0)
++#define SUN4I_CODEC_DAC_TUNE			(0x14)
++#define SUN4I_CODEC_DAC_DEBUG			(0x18)
++
++/* Codec ADC register offsets and bit fields */
++#define SUN4I_CODEC_ADC_FIFOC			(0x1c)
++#define SUN4I_CODEC_ADC_FIFOC_EN_AD			(28)
++#define SUN4I_CODEC_ADC_FIFOC_RX_FIFO_MODE		(24)
++#define SUN4I_CODEC_ADC_FIFOC_RX_TRIG_LEVEL		(8)
++#define SUN4I_CODEC_ADC_FIFOC_MONO_EN			(7)
++#define SUN4I_CODEC_ADC_FIFOC_RX_SAMPLE_BITS		(6)
++#define SUN4I_CODEC_ADC_FIFOC_ADC_DRQ_EN		(4)
++#define SUN4I_CODEC_ADC_FIFOC_FIFO_FLUSH		(0)
++#define SUN4I_CODEC_ADC_FIFOS			(0x20)
++#define SUN4I_CODEC_ADC_RXDATA			(0x24)
++#define SUN4I_CODEC_ADC_ACTL			(0x28)
++#define SUN4I_CODEC_ADC_ACTL_ADC_R_EN			(31)
++#define SUN4I_CODEC_ADC_ACTL_ADC_L_EN			(30)
++#define SUN4I_CODEC_ADC_ACTL_PREG1EN			(29)
++#define SUN4I_CODEC_ADC_ACTL_PREG2EN			(28)
++#define SUN4I_CODEC_ADC_ACTL_VMICEN			(27)
++#define SUN4I_CODEC_ADC_ACTL_VADCG			(20)
++#define SUN4I_CODEC_ADC_ACTL_ADCIS			(17)
++#define SUN4I_CODEC_ADC_ACTL_PA_EN			(4)
++#define SUN4I_CODEC_ADC_ACTL_DDE			(3)
++#define SUN4I_CODEC_ADC_DEBUG			(0x2c)
++
++/* Other various ADC registers */
++#define SUN4I_CODEC_DAC_TXCNT			(0x30)
++#define SUN4I_CODEC_ADC_RXCNT			(0x34)
++#define SUN4I_CODEC_AC_SYS_VERI			(0x38)
++#define SUN4I_CODEC_AC_MIC_PHONE_CAL		(0x3c)
++
++struct sun4i_codec {
++	struct device	*dev;
++	struct regmap	*regmap;
++	struct clk	*clk_apb;
++	struct clk	*clk_module;
++
++	struct snd_dmaengine_dai_dma_data	playback_dma_data;
++};
++
++static void sun4i_codec_start_playback(struct sun4i_codec *scodec)
++{
++	/*
++	 * FIXME: according to the BSP, we might need to drive a PA
++	 *        GPIO high here on some boards
++	 */
++
++	/* Flush TX FIFO */
++	regmap_update_bits(scodec->regmap, SUN4I_CODEC_DAC_FIFOC,
++			   BIT(SUN4I_CODEC_DAC_FIFOC_FIFO_FLUSH),
++			   BIT(SUN4I_CODEC_DAC_FIFOC_FIFO_FLUSH));
++
++	/* Enable DAC DRQ */
++	regmap_update_bits(scodec->regmap, SUN4I_CODEC_DAC_FIFOC,
++			   BIT(SUN4I_CODEC_DAC_FIFOC_DAC_DRQ_EN),
++			   BIT(SUN4I_CODEC_DAC_FIFOC_DAC_DRQ_EN));
++}
++
++static void sun4i_codec_stop_playback(struct sun4i_codec *scodec)
++{
++	/*
++	 * FIXME: according to the BSP, we might need to drive a PA
++	 *        GPIO low here on some boards
++	 */
++
++	/* Disable DAC DRQ */
++	regmap_update_bits(scodec->regmap, SUN4I_CODEC_DAC_FIFOC,
++			   BIT(SUN4I_CODEC_DAC_FIFOC_DAC_DRQ_EN),
++			   0);
++}
++
++static int sun4i_codec_trigger(struct snd_pcm_substream *substream, int cmd,
++			       struct snd_soc_dai *dai)
++{
++	struct snd_soc_pcm_runtime *rtd = substream->private_data;
++	struct sun4i_codec *scodec = snd_soc_card_get_drvdata(rtd->card);
++
++	if (substream->stream != SNDRV_PCM_STREAM_PLAYBACK)
++		return -ENOTSUPP;
++
++	switch (cmd) {
++	case SNDRV_PCM_TRIGGER_START:
++	case SNDRV_PCM_TRIGGER_RESUME:
++	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
++		sun4i_codec_start_playback(scodec);
++		break;
++
++	case SNDRV_PCM_TRIGGER_STOP:
++	case SNDRV_PCM_TRIGGER_SUSPEND:
++	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
++		sun4i_codec_stop_playback(scodec);
++		break;
++
++	default:
++		return -EINVAL;
++	}
++
++	return 0;
++}
++
++static int sun4i_codec_prepare(struct snd_pcm_substream *substream,
++			       struct snd_soc_dai *dai)
++{
++	struct snd_soc_pcm_runtime *rtd = substream->private_data;
++	struct sun4i_codec *scodec = snd_soc_card_get_drvdata(rtd->card);
++	u32 val;
++
++	if (substream->stream != SNDRV_PCM_STREAM_PLAYBACK)
++		return -ENOTSUPP;
++
++	/* Flush the TX FIFO */
++	regmap_update_bits(scodec->regmap, SUN4I_CODEC_DAC_FIFOC,
++			   BIT(SUN4I_CODEC_DAC_FIFOC_FIFO_FLUSH),
++			   BIT(SUN4I_CODEC_DAC_FIFOC_FIFO_FLUSH));
++
++	/* Set TX FIFO Empty Trigger Level */
++	regmap_update_bits(scodec->regmap, SUN4I_CODEC_DAC_FIFOC,
++			   0x3f << SUN4I_CODEC_DAC_FIFOC_TX_TRIG_LEVEL,
++			   0xf << SUN4I_CODEC_DAC_FIFOC_TX_TRIG_LEVEL);
++
++	if (substream->runtime->rate > 32000)
++		/* Use 64 bits FIR filter */
++		val = 0;
++	else
++		/* Use 32 bits FIR filter */
++		val = BIT(SUN4I_CODEC_DAC_FIFOC_FIR_VERSION);
++
++	regmap_update_bits(scodec->regmap, SUN4I_CODEC_DAC_FIFOC,
++			   BIT(SUN4I_CODEC_DAC_FIFOC_FIR_VERSION),
++			   val);
++
++	/* Send zeros when we have an underrun */
++	regmap_update_bits(scodec->regmap, SUN4I_CODEC_DAC_FIFOC,
++			   BIT(SUN4I_CODEC_DAC_FIFOC_SEND_LASAT),
++			   0);
++
++	return 0;
++}
++
++static unsigned long sun4i_codec_get_mod_freq(struct snd_pcm_hw_params *params)
++{
++	unsigned int rate = params_rate(params);
++
++	switch (rate) {
++	case 176400:
++	case 88200:
++	case 44100:
++	case 33075:
++	case 22050:
++	case 14700:
++	case 11025:
++	case 7350:
++		return 22579200;
++
++	case 192000:
++	case 96000:
++	case 48000:
++	case 32000:
++	case 24000:
++	case 16000:
++	case 12000:
++	case 8000:
++		return 24576000;
++
++	default:
++		return 0;
++	}
++}
++
++static int sun4i_codec_get_hw_rate(struct snd_pcm_hw_params *params)
++{
++	unsigned int rate = params_rate(params);
++
++	switch (rate) {
++	case 192000:
++	case 176400:
++		return 6;
++
++	case 96000:
++	case 88200:
++		return 7;
++
++	case 48000:
++	case 44100:
++		return 0;
++
++	case 32000:
++	case 33075:
++		return 1;
++
++	case 24000:
++	case 22050:
++		return 2;
++
++	case 16000:
++	case 14700:
++		return 3;
++
++	case 12000:
++	case 11025:
++		return 4;
++
++	case 8000:
++	case 7350:
++		return 5;
++
++	default:
++		return -EINVAL;
++	}
++}
++
++static int sun4i_codec_hw_params(struct snd_pcm_substream *substream,
++				 struct snd_pcm_hw_params *params,
++				 struct snd_soc_dai *dai)
++{
++	struct snd_soc_pcm_runtime *rtd = substream->private_data;
++	struct sun4i_codec *scodec = snd_soc_card_get_drvdata(rtd->card);
++	unsigned long clk_freq;
++	int hwrate;
++	u32 val;
++
++	if (substream->stream != SNDRV_PCM_STREAM_PLAYBACK)
++		return -ENOTSUPP;
++
++	clk_freq = sun4i_codec_get_mod_freq(params);
++	if (!clk_freq)
++		return -EINVAL;
++
++	if (clk_set_rate(scodec->clk_module, clk_freq))
++		return -EINVAL;
++
++	hwrate = sun4i_codec_get_hw_rate(params);
++	if (hwrate < 0)
++		return hwrate;
++
++	/* Set DAC sample rate */
++	regmap_update_bits(scodec->regmap, SUN4I_CODEC_DAC_FIFOC,
++			   7 << SUN4I_CODEC_DAC_FIFOC_DAC_FS,
++			   hwrate << SUN4I_CODEC_DAC_FIFOC_DAC_FS);
++
++	/* Set the number of channels we want to use */
++	if (params_channels(params) == 1)
++		val = BIT(SUN4I_CODEC_DAC_FIFOC_MONO_EN);
++	else
++		val = 0;
++
++	regmap_update_bits(scodec->regmap, SUN4I_CODEC_DAC_FIFOC,
++			   BIT(SUN4I_CODEC_DAC_FIFOC_MONO_EN),
++			   val);
++
++	/* Set the number of sample bits to either 16 or 24 bits */
++	if (hw_param_interval(params, SNDRV_PCM_HW_PARAM_SAMPLE_BITS)->min == 32) {
++		regmap_update_bits(scodec->regmap, SUN4I_CODEC_DAC_FIFOC,
++				   BIT(SUN4I_CODEC_DAC_FIFOC_TX_SAMPLE_BITS),
++				   BIT(SUN4I_CODEC_DAC_FIFOC_TX_SAMPLE_BITS));
++
++		/* Set TX FIFO mode to padding the LSBs with 0 */
++		regmap_update_bits(scodec->regmap, SUN4I_CODEC_DAC_FIFOC,
++				   BIT(SUN4I_CODEC_DAC_FIFOC_TX_FIFO_MODE),
++				   0);
++
++		scodec->playback_dma_data.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
++	} else {
++		regmap_update_bits(scodec->regmap, SUN4I_CODEC_DAC_FIFOC,
++				   BIT(SUN4I_CODEC_DAC_FIFOC_TX_SAMPLE_BITS),
++				   0);
++
++		/* Set TX FIFO mode to repeat the MSB */
++		regmap_update_bits(scodec->regmap, SUN4I_CODEC_DAC_FIFOC,
++				   BIT(SUN4I_CODEC_DAC_FIFOC_TX_FIFO_MODE),
++				   BIT(SUN4I_CODEC_DAC_FIFOC_TX_FIFO_MODE));
++
++		scodec->playback_dma_data.addr_width = DMA_SLAVE_BUSWIDTH_2_BYTES;
++	}
++
++	return 0;
++}
++
++static int sun4i_codec_startup(struct snd_pcm_substream *substream,
++			       struct snd_soc_dai *dai)
++{
++	struct snd_soc_pcm_runtime *rtd = substream->private_data;
++	struct sun4i_codec *scodec = snd_soc_card_get_drvdata(rtd->card);
++
++	/*
++	 * Stop issuing DRQ when we have room for less than 16 samples
++	 * in our TX FIFO
++	 */
++	regmap_update_bits(scodec->regmap, SUN4I_CODEC_DAC_FIFOC,
++			   3 << SUN4I_CODEC_DAC_FIFOC_DRQ_CLR_CNT,
++			   3 << SUN4I_CODEC_DAC_FIFOC_DRQ_CLR_CNT);
++
++	return clk_prepare_enable(scodec->clk_module);
++}
++
++static void sun4i_codec_shutdown(struct snd_pcm_substream *substream,
++				 struct snd_soc_dai *dai)
++{
++	struct snd_soc_pcm_runtime *rtd = substream->private_data;
++	struct sun4i_codec *scodec = snd_soc_card_get_drvdata(rtd->card);
++
++	clk_disable_unprepare(scodec->clk_module);
++}
++
++static const struct snd_soc_dai_ops sun4i_codec_dai_ops = {
++	.startup	= sun4i_codec_startup,
++	.shutdown	= sun4i_codec_shutdown,
++	.trigger	= sun4i_codec_trigger,
++	.hw_params	= sun4i_codec_hw_params,
++	.prepare	= sun4i_codec_prepare,
++};
++
++static struct snd_soc_dai_driver sun4i_codec_dai = {
++	.name	= "Codec",
++	.ops	= &sun4i_codec_dai_ops,
++	.playback = {
++		.stream_name	= "Codec Playback",
++		.channels_min	= 1,
++		.channels_max	= 2,
++		.rate_min	= 8000,
++		.rate_max	= 192000,
++		.rates		= SNDRV_PCM_RATE_8000_48000 |
++				  SNDRV_PCM_RATE_96000 |
++				  SNDRV_PCM_RATE_192000 |
++				  SNDRV_PCM_RATE_KNOT,
++		.formats	= SNDRV_PCM_FMTBIT_S16_LE |
++				  SNDRV_PCM_FMTBIT_S32_LE,
++		.sig_bits	= 24,
++	},
++};
++
++/*** Codec ***/
++static const struct snd_kcontrol_new sun4i_codec_pa_mute =
++	SOC_DAPM_SINGLE("Switch", SUN4I_CODEC_DAC_ACTL,
++			SUN4I_CODEC_DAC_ACTL_PA_MUTE, 1, 0);
++
++static DECLARE_TLV_DB_SCALE(sun4i_codec_pa_volume_scale, -6300, 100, 1);
++
++static const struct snd_kcontrol_new sun4i_codec_widgets[] = {
++	SOC_SINGLE_TLV("PA Volume", SUN4I_CODEC_DAC_ACTL,
++		       SUN4I_CODEC_DAC_ACTL_PA_VOL, 0x3F, 0,
++		       sun4i_codec_pa_volume_scale),
++};
++
++static const struct snd_kcontrol_new sun4i_codec_left_mixer_controls[] = {
++	SOC_DAPM_SINGLE("Left DAC Playback Switch", SUN4I_CODEC_DAC_ACTL,
++			SUN4I_CODEC_DAC_ACTL_LDACLMIXS, 1, 0),
++};
++
++static const struct snd_kcontrol_new sun4i_codec_right_mixer_controls[] = {
++	SOC_DAPM_SINGLE("Right DAC Playback Switch", SUN4I_CODEC_DAC_ACTL,
++			SUN4I_CODEC_DAC_ACTL_RDACRMIXS, 1, 0),
++	SOC_DAPM_SINGLE("Left DAC Playback Switch", SUN4I_CODEC_DAC_ACTL,
++			SUN4I_CODEC_DAC_ACTL_LDACRMIXS, 1, 0),
++};
++
++static const struct snd_kcontrol_new sun4i_codec_pa_mixer_controls[] = {
++	SOC_DAPM_SINGLE("DAC Playback Switch", SUN4I_CODEC_DAC_ACTL,
++			SUN4I_CODEC_DAC_ACTL_DACPAS, 1, 0),
++	SOC_DAPM_SINGLE("Mixer Playback Switch", SUN4I_CODEC_DAC_ACTL,
++			SUN4I_CODEC_DAC_ACTL_MIXPAS, 1, 0),
++};
++
++static const struct snd_soc_dapm_widget sun4i_codec_dapm_widgets[] = {
++	/* Digital parts of the DACs */
++	SND_SOC_DAPM_SUPPLY("DAC", SUN4I_CODEC_DAC_DPC,
++			    SUN4I_CODEC_DAC_DPC_EN_DA, 0,
++			    NULL, 0),
++
++	/* Analog parts of the DACs */
++	SND_SOC_DAPM_DAC("Left DAC", "Codec Playback", SUN4I_CODEC_DAC_ACTL,
++			 SUN4I_CODEC_DAC_ACTL_DACAENL, 0),
++	SND_SOC_DAPM_DAC("Right DAC", "Codec Playback", SUN4I_CODEC_DAC_ACTL,
++			 SUN4I_CODEC_DAC_ACTL_DACAENR, 0),
++
++	/* Mixers */
++	SND_SOC_DAPM_MIXER("Left Mixer", SND_SOC_NOPM, 0, 0,
++			   sun4i_codec_left_mixer_controls,
++			   ARRAY_SIZE(sun4i_codec_left_mixer_controls)),
++	SND_SOC_DAPM_MIXER("Right Mixer", SND_SOC_NOPM, 0, 0,
++			   sun4i_codec_right_mixer_controls,
++			   ARRAY_SIZE(sun4i_codec_right_mixer_controls)),
++
++	/* Global Mixer Enable */
++	SND_SOC_DAPM_SUPPLY("Mixer Enable", SUN4I_CODEC_DAC_ACTL,
++			    SUN4I_CODEC_DAC_ACTL_MIXEN, 0, NULL, 0),
++
++	/* Pre-Amplifier */
++	SND_SOC_DAPM_MIXER("Pre-Amplifier", SUN4I_CODEC_ADC_ACTL,
++			   SUN4I_CODEC_ADC_ACTL_PA_EN, 0,
++			   sun4i_codec_pa_mixer_controls,
++			   ARRAY_SIZE(sun4i_codec_pa_mixer_controls)),
++	SND_SOC_DAPM_SWITCH("Pre-Amplifier Mute", SND_SOC_NOPM, 0, 0,
++			    &sun4i_codec_pa_mute),
++
++	SND_SOC_DAPM_OUTPUT("HP Right"),
++	SND_SOC_DAPM_OUTPUT("HP Left"),
++};
++
++static const struct snd_soc_dapm_route sun4i_codec_dapm_routes[] = {
++	/* Left DAC Routes */
++	{ "Left DAC", NULL, "DAC" },
++
++	/* Right DAC Routes */
++	{ "Right DAC", NULL, "DAC" },
++
++	/* Right Mixer Routes */
++	{ "Right Mixer", NULL, "Mixer Enable" },
++	{ "Right Mixer", "Left DAC Playback Switch", "Left DAC" },
++	{ "Right Mixer", "Right DAC Playback Switch", "Right DAC" },
++
++	/* Left Mixer Routes */
++	{ "Left Mixer", NULL, "Mixer Enable" },
++	{ "Left Mixer", "Left DAC Playback Switch", "Left DAC" },
++
++	/* Pre-Amplifier Mixer Routes */
++	{ "Pre-Amplifier", "Mixer Playback Switch", "Left Mixer" },
++	{ "Pre-Amplifier", "Mixer Playback Switch", "Right Mixer" },
++	{ "Pre-Amplifier", "DAC Playback Switch", "Left DAC" },
++	{ "Pre-Amplifier", "DAC Playback Switch", "Right DAC" },
++
++	/* PA -> HP path */
++	{ "Pre-Amplifier Mute", "Switch", "Pre-Amplifier" },
++	{ "HP Right", NULL, "Pre-Amplifier Mute" },
++	{ "HP Left", NULL, "Pre-Amplifier Mute" },
++};
++
++static struct snd_soc_codec_driver sun4i_codec_codec = {
++	.controls		= sun4i_codec_widgets,
++	.num_controls		= ARRAY_SIZE(sun4i_codec_widgets),
++	.dapm_widgets		= sun4i_codec_dapm_widgets,
++	.num_dapm_widgets	= ARRAY_SIZE(sun4i_codec_dapm_widgets),
++	.dapm_routes		= sun4i_codec_dapm_routes,
++	.num_dapm_routes	= ARRAY_SIZE(sun4i_codec_dapm_routes),
++};
++
++static const struct snd_soc_component_driver sun4i_codec_component = {
++	.name = "sun4i-codec",
++};
++
++#define SUN4I_CODEC_RATES	SNDRV_PCM_RATE_8000_192000
++#define SUN4I_CODEC_FORMATS	(SNDRV_PCM_FMTBIT_S16_LE | \
++				 SNDRV_PCM_FMTBIT_S32_LE)
++
++static int sun4i_codec_dai_probe(struct snd_soc_dai *dai)
++{
++	struct snd_soc_card *card = snd_soc_dai_get_drvdata(dai);
++	struct sun4i_codec *scodec = snd_soc_card_get_drvdata(card);
++
++	snd_soc_dai_init_dma_data(dai, &scodec->playback_dma_data,
++				  NULL);
++
++	return 0;
++}
++
++static struct snd_soc_dai_driver dummy_cpu_dai = {
++	.name	= "sun4i-codec-cpu-dai",
++	.probe	= sun4i_codec_dai_probe,
++	.playback = {
++		.stream_name	= "Playback",
++		.channels_min	= 1,
++		.channels_max	= 2,
++		.rates		= SUN4I_CODEC_RATES,
++		.formats	= SUN4I_CODEC_FORMATS,
++		.sig_bits	= 24,
++	},
++};
++
++static const struct regmap_config sun4i_codec_regmap_config = {
++	.reg_bits	= 32,
++	.reg_stride	= 4,
++	.val_bits	= 32,
++	.max_register	= SUN4I_CODEC_AC_MIC_PHONE_CAL,
++};
++
++static const struct of_device_id sun4i_codec_of_match[] = {
++	{ .compatible = "allwinner,sun4i-a10-codec" },
++	{ .compatible = "allwinner,sun7i-a20-codec" },
++	{}
++};
++MODULE_DEVICE_TABLE(of, sun4i_codec_of_match);
++
++static struct snd_soc_dai_link *sun4i_codec_create_link(struct device *dev,
++							int *num_links)
++{
++	struct snd_soc_dai_link *link = devm_kzalloc(dev, sizeof(*link),
++						     GFP_KERNEL);
++	if (!link)
++		return NULL;
++
++	link->name		= "cdc";
++	link->stream_name	= "CDC PCM";
++	link->codec_dai_name	= "Codec";
++	link->cpu_dai_name	= dev_name(dev);
++	link->codec_name	= dev_name(dev);
++	link->platform_name	= dev_name(dev);
++	link->dai_fmt		= SND_SOC_DAIFMT_I2S;
++
++	*num_links = 1;
++
++	return link;
++};
++
++static struct snd_soc_card *sun4i_codec_create_card(struct device *dev)
++{
++	struct snd_soc_card *card;
++	int ret;
++
++	card = devm_kzalloc(dev, sizeof(*card), GFP_KERNEL);
++	if (!card)
++		return NULL;
++
++	card->dai_link = sun4i_codec_create_link(dev, &card->num_links);
++	if (!card->dai_link)
++		return NULL;
++
++	card->dev		= dev;
++	card->name		= "sun4i-codec";
++
++	ret = snd_soc_of_parse_audio_routing(card, "routing");
++	if (ret) {
++		dev_err(dev, "Failed to create our audio routing\n");
++		return NULL;
++	}
++
++	return card;
++};
++
++static int sun4i_codec_probe(struct platform_device *pdev)
++{
++	struct snd_soc_card *card;
++	struct sun4i_codec *scodec;
++	struct resource *res;
++	void __iomem *base;
++	int ret;
++
++	scodec = devm_kzalloc(&pdev->dev, sizeof(*scodec), GFP_KERNEL);
++	if (!scodec)
++		return -ENOMEM;
++
++	scodec->dev = &pdev->dev;
++
++	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++	base = devm_ioremap_resource(&pdev->dev, res);
++	if (IS_ERR(base)) {
++		dev_err(&pdev->dev, "Failed to map the registers\n");
++		return PTR_ERR(base);
++	}
++
++	scodec->regmap = devm_regmap_init_mmio(&pdev->dev, base,
++					     &sun4i_codec_regmap_config);
++	if (IS_ERR(scodec->regmap)) {
++		dev_err(&pdev->dev, "Failed to create our regmap\n");
++		return PTR_ERR(scodec->regmap);
++	}
++
++	/* Get the clocks from the DT */
++	scodec->clk_apb = devm_clk_get(&pdev->dev, "apb");
++	if (IS_ERR(scodec->clk_apb)) {
++		dev_err(&pdev->dev, "Failed to get the APB clock\n");
++		return PTR_ERR(scodec->clk_apb);
++	}
++
++	scodec->clk_module = devm_clk_get(&pdev->dev, "codec");
++	if (IS_ERR(scodec->clk_module)) {
++		dev_err(&pdev->dev, "Failed to get the module clock\n");
++		return PTR_ERR(scodec->clk_module);
++	}
++
++	/* Enable the bus clock */
++	if (clk_prepare_enable(scodec->clk_apb)) {
++		dev_err(&pdev->dev, "Failed to enable the APB clock\n");
++		return -EINVAL;
++	}
++
++	/* DMA configuration for TX FIFO */
++	scodec->playback_dma_data.addr = res->start + SUN4I_CODEC_DAC_TXDATA;
++	scodec->playback_dma_data.maxburst = 4;
++	scodec->playback_dma_data.addr_width = DMA_SLAVE_BUSWIDTH_2_BYTES;
++
++	ret = snd_soc_register_codec(&pdev->dev, &sun4i_codec_codec,
++				     &sun4i_codec_dai, 1);
++	if (ret) {
++		dev_err(&pdev->dev, "Failed to register our codec\n");
++		goto err_clk_disable;
++	}
++
++	ret = devm_snd_soc_register_component(&pdev->dev,
++					      &sun4i_codec_component,
++					      &dummy_cpu_dai, 1);
++	if (ret) {
++		dev_err(&pdev->dev, "Failed to register our DAI\n");
++		goto err_unregister_codec;
++	}
++
++	ret = devm_snd_dmaengine_pcm_register(&pdev->dev, NULL, 0);
++	if (ret) {
++		dev_err(&pdev->dev, "Failed to register against DMAEngine\n");
++		goto err_unregister_codec;
++	}
++
++	card = sun4i_codec_create_card(&pdev->dev);
++	if (!card) {
++		dev_err(&pdev->dev, "Failed to create our card\n");
++		goto err_unregister_codec;
++	}
++
++	platform_set_drvdata(pdev, card);
++	snd_soc_card_set_drvdata(card, scodec);
++
++	ret = snd_soc_register_card(card);
++	if (ret) {
++		dev_err(&pdev->dev, "Failed to register our card\n");
++		goto err_unregister_codec;
++	}
++
++	return 0;
++
++err_unregister_codec:
++	snd_soc_unregister_codec(&pdev->dev);
++err_clk_disable:
++	clk_disable_unprepare(scodec->clk_apb);
++	return ret;
++}
++
++static int sun4i_codec_remove(struct platform_device *pdev)
++{
++	struct snd_soc_card *card = platform_get_drvdata(pdev);
++	struct sun4i_codec *scodec = snd_soc_card_get_drvdata(card);
++
++	snd_soc_unregister_card(card);
++	snd_soc_unregister_codec(&pdev->dev);
++	clk_disable_unprepare(scodec->clk_apb);
++
++	return 0;
++}
++
++static struct platform_driver sun4i_codec_driver = {
++	.driver = {
++		.name = "sun4i-codec",
++		.owner = THIS_MODULE,
++		.of_match_table = sun4i_codec_of_match,
++	},
++	.probe = sun4i_codec_probe,
++	.remove = sun4i_codec_remove,
++};
++module_platform_driver(sun4i_codec_driver);
++
++MODULE_DESCRIPTION("Allwinner A10 codec driver");
++MODULE_AUTHOR("Emilio López <emilio@elopez.com.ar>");
++MODULE_AUTHOR("Jon Smirl <jonsmirl@gmail.com>");
++MODULE_AUTHOR("Maxime Ripard <maxime.ripard@free-electrons.com>");
++MODULE_LICENSE("GPL");

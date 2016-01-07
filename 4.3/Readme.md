@@ -1,5 +1,5 @@
-          KERNELS
-================================
+          PATCHES FOR KERNEL 4.3
+=======================================================================
 
 This repository contains the folders with the
 kernel patchsets chosen and written to make the 
@@ -19,12 +19,12 @@ Also use the scripts deblob*  for generation of the GNU/Libre kernel.
 ANNOTATIONS:
 ============
 
-These published patches have all resulted in running kernels 
-for machines of x86 architecture. 
+The patches requiem for Ian Murdock contain a selection of patches for 4.3.3 
+from the distributions
 
-Do not worry on unresolved rejects during the BusyBox patching. 
-For my mainstream x86 hardware everything is working, but of
-course you may eliminate the rejects.
+Intel Clear Linux, OpenSuSE Tumbleweed-4.3.3-3.1, Fedora 20, Mageia Cauldron, Gentoo,
+Ubuntu-Xenial-5.16, PostFactum-ConKolivas-Fusion from Parabola ARCH-Package PCK2, Sunxi, PCLinuxOS,
+TCP-Stealth TUM
 
 
 2016-01-07, 

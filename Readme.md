@@ -21,13 +21,13 @@ ANNOTATIONS:
 
 These published patches have all resulted in running kernels 
 for machines of x86 architecture. 
-Hopefully, one day, it will be possible to publish a similar unification
-of different patchsets for the grand variety of RISC machines (ARM standards)
-such that one kernel after 4.3.0 will suffice all developpers' needs
-for all marketed machines .....
 
-Merry Christmas and a Happy New Year 2016
+Do not worry on unresolved rejects during the BusyBox patching. 
+For my mainstream x86 hardware everything is working, but of
+course you may eliminate the rejects.
 
-2015-12-12, 
+
+
+2016-01-07, 
 Dieter Miosga 
  
