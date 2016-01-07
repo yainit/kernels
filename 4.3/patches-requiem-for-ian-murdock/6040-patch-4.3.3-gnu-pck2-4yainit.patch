@@ -18984,18 +18984,6 @@ diff -Nur linux-4.3.3/drivers/cpufreq/intel_pstate.c linux-4.3.3-pck/drivers/cpu
  
  	val |= vid;
  
-diff -Nur linux-4.3.3/drivers/gpu/drm/drm_gem.c linux-4.3.3-pck/drivers/gpu/drm/drm_gem.c
---- linux-4.3.3/drivers/gpu/drm/drm_gem.c	2015-12-15 02:41:43.000000000 -0300
-+++ linux-4.3.3-pck/drivers/gpu/drm/drm_gem.c	2015-12-26 15:45:03.070009819 -0300
-@@ -137,7 +137,7 @@
- 
- 	drm_gem_private_object_init(dev, obj, size);
- 
--	filp = shmem_file_setup("drm mm object", size, VM_NORESERVE);
-+	filp = shmem_file_setup("drm mm object", size, VM_NORESERVE, 1);
- 	if (IS_ERR(filp))
- 		return PTR_ERR(filp);
- 
 diff -Nur linux-4.3.3/drivers/gpu/drm/i915/intel_display.c linux-4.3.3-pck/drivers/gpu/drm/i915/intel_display.c
 --- linux-4.3.3/drivers/gpu/drm/i915/intel_display.c	2015-12-15 02:41:43.000000000 -0300
 +++ linux-4.3.3-pck/drivers/gpu/drm/i915/intel_display.c	2015-12-26 15:44:47.530794714 -0300
