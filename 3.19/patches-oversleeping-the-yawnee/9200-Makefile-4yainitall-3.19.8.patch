@@ -7,8 +7,8 @@ diff -uNr a/Makefile b/Makefile
  SUBLEVEL = 8
 -EXTRAVERSION =
 -NAME = Diseased Newt
-+EXTRAVERSION = .yainitfinal_1512I
-+NAME = YaIniT RT-BFS461 with all from UbuntuVIVID-39.44 Gentoo Mageia OpenSuSE-1.2 Fedora ZEN BFS BFQ
++EXTRAVERSION = .yainitfinal_1601I
++NAME = YaIniT RT-BFS461 with all from UbuntuVIVID-44.50 Gentoo Mageia OpenSuSE-13.2-1.2 Fedora ZEN BFS BFQ
  
  # *DOCUMENTATION*
  # To see a list of typical targets execute "make help"
