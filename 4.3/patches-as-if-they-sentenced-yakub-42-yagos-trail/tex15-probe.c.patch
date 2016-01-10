@@ -1,0 +1,14 @@
+--- a/drivers/pci/probe.c	
++++ a/drivers/pci/probe.c	
+@@ -174,6 +174,11 @@ int __pci_read_base(struct pci_dev *dev, enum pci_bar_type type,
+ 	if (type == pci_bar_unknown) {
+ 		res->flags = decode_bar(dev, l);
+ 		res->flags |= IORESOURCE_SIZEALIGN;
++		if (l == sz) {
++			res->flags |= IORESOURCE_PCI_FIXED;
++			dev_info(&dev->dev,
++				 "reg %x: read-only BAR can't be moved\n", pos);
++		}
+ 		if (res->flags & IORESOURCE_IO) {
+ 			l &= PCI_BASE_ADDRESS_IO_MASK;
+ 			mask = PCI_BASE_ADDRESS_IO_MASK & (u32) IO_SPACE_LIMIT;
