@@ -28,6 +28,7 @@ course you may eliminate the rejects.
 
 
 
-2016-01-07, 
+2016-01-07 through 2016-01-24, 
+
 Dieter Miosga 
  

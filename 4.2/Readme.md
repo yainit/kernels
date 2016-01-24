@@ -1,5 +1,5 @@
-          KERNELS
-================================
+          PATCHES FOR KERNEL 4.2
+==========================================
 
 This repository contains the folders with the
 kernel patchsets chosen and written to make the 
@@ -28,6 +28,9 @@ course you may eliminate the rejects.
 
 
 
-2016-01-07, 
+
+The linux-4.2 kernel series will no longer be maintained for YaIniT!
+
+2016-01-24, 
 Dieter Miosga 
  

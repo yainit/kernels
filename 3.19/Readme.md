@@ -1,5 +1,5 @@
-          KERNELS
-================================
+          PATCHES FOR KERNEL 3.19
+===============================================================
 
 This repository contains the folders with the
 kernel patchsets chosen and written to make the 
@@ -27,7 +27,13 @@ For my mainstream x86 hardware everything is working, but of
 course you may eliminate the rejects.
 
 
+Changes : 
+====================================
 
-2016-01-07, 
+Added updated patchset with latest Ubuntu commitments.....
+
+
+2016-01-24, 
+
 Dieter Miosga 
  

@@ -16,20 +16,17 @@ are in the folders with the name libre-?.??-gnu
 
 Also use the scripts deblob*  for generation of the GNU/Libre kernel.
 
-ANNOTATIONS:
-============
+ANNOTATIONS, CHANGES :
+===================================
 
-The patches "Requiem for Ian Murdock" contain an unification of patches for 4.3.3 
+The patchset "another-servant-from-service-begs-for-grace" contain the last unified selection of patches for 4.3.3 
 from the distributions
 
-Intel Clear Linux, OpenSuSE Tumbleweed-4.3.3-3.1, Mageia Cauldron, Gentoo,
-Ubuntu-Xenial-5.16, PostFactum-PF and Liquorix-ZEN Fusion, Sunxi, PCLinuxOS,
-TCP-Stealth TUM
+Intel Clear Linux, OpenSuSE Tumbleweed-4.3.3-9.1, Mageia Cauldron 6, Gentoo, Fedora 23, Debian
+Ubuntu-Xenial-7.18, PostFactum-PF4 and Liquorix-ZEN5 Fusion, Sunxi, PCLinuxOS,
+TCP-Stealth TUM, and the AUR patchsets
 
 
-The timely next patches ( As if they would have sentenced the GCC-Maintainer 
-Jakub Jelinek for to walk forwards on the Santiago trail through Spain )
-contain some more patches from Fedora-20, PCLinuxOS.
 The speciality indeed is, that with the OpenSuSE-Tumbleweed32 Distribution as of 2015-12-21, 
 the settings for AMD-k15 architecture compile to a working binary only with the old GCC-4.8 version.
 With the GCC-5.2 version, the kernel crashes. Please feel free to use the toolchain switcher
@@ -37,7 +34,7 @@ that I wrote to change the symlinks for the current gcc-* commands from 5.2.1 to
 Find this in the toolchain/tools repository.
 
 
+2016-01-24, 
 
-2016-01-10, 
 Dieter Miosga 
  
