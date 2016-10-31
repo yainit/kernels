@@ -1,4 +1,4 @@
-          KERNELS
+                  KERNELS
 ================================
 
 This repository contains the folders with the
@@ -22,13 +22,13 @@ ANNOTATIONS:
 These published patches have all resulted in running kernels 
 for machines of x86 architecture. 
 
-Do not worry on unresolved rejects during the BusyBox patching. 
+Do not worry on unresolved rejects during the BusyBox patch applet patching. 
 For my mainstream x86 hardware everything is working, but of
-course you may eliminate the rejects.
+course you may chnage the patches and eliminate the rejects.
 
 
 
-2016-01-07 through 2016-01-24, 
+2016-01-07 through 2016-10-31, 
 
 Dieter Miosga 
  

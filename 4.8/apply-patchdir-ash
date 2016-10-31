@@ -1,0 +1,118 @@
+#!/bin/busybox ash
+set -x
+askfor_patchdir()
+{
+  echo "No (unique) directory found with files to patch : '$1' "
+  echo "Please specify a correct one!"
+  exit 0
+}
+check_patchname()
+{
+  local pn
+   pn="$1"
+   case "$1" in
+     \#*|\n)
+       pn=""
+     ;;
+     Patch*": "*) #Fedora case
+       pn=${pn#*: }
+     ;;
+   esac
+   echo "$pn"
+}
+TARGETDIR=""
+SERIESFILE=""
+PATCHDIR=""
+if [ "$3" != "" ]; then   
+  SERIESFILE="$3"
+fi
+if [ "$2" != "" ]; then   
+  PATCHDIR="$2"
+fi
+if [ "$1" != "" ]; then   
+  TARGETDIR="$1"
+fi
+HERE=`pwd`
+HERESUB="$(/bin/busybox basename $HERE 2>/dev/null)"
+if [ "$TARGETDIR" != "" ]; then
+ HERESUB="$TARGETDIR"
+else
+ echo "must specify at least a patch directory !"
+ askfor_patchdir
+fi
+if [ "$HERE" != "/$HERESUB" ];then
+  TARGETDIR="$HERE/$HERESUB"
+else
+  TARGETDIR="$HERE"
+fi
+
+if [ "$PATCHDIR" != "" ]; then 
+  if [ "$SERIESFILE" != "" ]; then   
+    PATCHDIR="$2"    
+  else
+    SERIESFILES="`/bin/busybox ls -1 $PATCHDIR/series*  2>/dev/null`"
+    if [ "$SERIESFILES" != ""  ]; then
+      if [ "${SERIESFILES% *}" = "$SERIESFILES" ]; then
+	SERIESFILE="$HERE/$SERIESFILES"
+      else
+	SERIESFILE=""
+      fi
+    fi
+  fi
+else
+  PATCHDIR="$TARGETDIR"
+  TARGETDIR=.
+fi
+
+if [ -d "$HERE/$PATCHDIR" ]; then
+  if [ -d "$TARGETDIR" ]; then 
+  #
+  /bin/busybox rm patchings.log 2>/dev/null
+
+  SERIESFILES="`/bin/busybox ls -1 $HERE/$PATCHDIR/$SERIESFILE  2>/dev/null`"
+  if [ "$SERIESFILES" != "" -a "$3" != "" ]; then
+    cd $TARGETDIR
+    #for p in `/bin/busybox cat $PATCHDIR/$SERIESFILE`; do
+    while read p; do
+       p=`check_patchname "$p"`
+#      if [ "${p}" = "${p#\#}" ]; then
+       if [ "${p}" != "" ]; then
+	if [ -f $HERE/$PATCHDIR/$p ]; then 
+	  echo "Patching with ---> $PATCHDIR/$p : "
+	  echo "Patching with ---> $PATCHDIR/$p : " >> patchings.log
+	  patch -p1 -F70  <  $HERE/$PATCHDIR/$p  >> patchings.log  2>&1
+	  RC=$?
+	  if [ $RC -gt 0 ]; then 
+	    echo "ERROR: Failed patching ---> $l with '$RC'" >> patchings.log
+	    echo "ERROR: Failed patching ---> $l with '$RC'" 
+	  fi 
+	fi
+      fi
+    #done
+    done < $SERIESFILES
+  else
+      PATCHDIR=$HERE/$PATCHDIR
+      cd $TARGETDIR
+      /bin/busybox find  $PATCHDIR -maxdepth 1 -type f | /bin/busybox sort | while read p; do
+          p=`check_patchname "$p"`
+	  echo "Patching with --->  $p : "
+	  echo "Patching with --->  $p : " >> patchings.log
+	  patch -p1 -F70 < $p   >> patchings.log  2>&1
+	  RC=$?
+	  if [ $RC -gt 0 ]; then 
+	    echo "ERROR: Failed patching ---> $l with '$RC'" >> patchings.log
+	    echo "ERROR: Failed patching ---> $l with '$RC'" 
+	  fi 
+	done
+	cd $HERE
+  fi
+  cd $HERE
+  else # TARGETDIR
+    echo "Directory  '$TARGETDIR' with tree to patch does not exist "
+    exit 127 
+  fi
+else 
+  askfor_patchdir $PATCHDIR
+fi
+
+#
