@@ -19,7 +19,7 @@ Also use the scripts deblob*  for generation of the GNU/Libre kernel.
 ANNOTATIONS, CHANGES :
 ============================================
 
-The patchset "out-of-cold-sweat-under-chloridic-sky" contains the last unified selection 
+The patchset "cold-sweat-under-chloridic-sky" contains the last unified selection 
 of patches for version 4.8.6 of linux kernel from the distributions
 
 Gentoo, Intel ClearOS, Sunxi-next-4.8.0-rc5, Ubuntu-4.8.0_27.29, OpenSuSE-4.8.3-1.1, 
