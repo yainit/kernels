@@ -19,19 +19,20 @@ Also use the scripts deblob*  for generation of the GNU/Libre kernel.
 ANNOTATIONS, CHANGES :
 ============================================
 
-The patchset "confidential-tribute-to-the-sake-of-americas-workingpoors" contain the last unified selection 
-of patches for version 4.8.5 of linux kernel from the distributions
+The patchset "out-of-cold-sweat-under-chloridic-sky" contains the last unified selection 
+of patches for version 4.8.6 of linux kernel from the distributions
 
 Gentoo, Intel ClearOS, Sunxi-next-4.8.0-rc5, Ubuntu-4.8.0_27.29, OpenSuSE-4.8.3-1.1, 
 ZEN (4.8.4-2.patch with scheduler MUQSS and EXFAT), Parabola (patch-4.8.4-gnu-pck1.patch with TCP-Stealth and UKSM), 
-Debian-4.8.4, Mageia-Cauldron 6 4.8.2-mga1, Fedora 25 4.8.2, and with yainit-patches
+AUR rcn-libre-4.8.6-arm-v7, Debian-4.8.4, Mageia-Cauldron 6 4.8.2-mga1, Fedora 25 4.8.2, and with revised yainit-patches
 
 
 These patches were all integrated and successfully compiled by Slackware-14.2-x86_32 distribution
-with a changed toolset for GCC-4.9.4 and BINTUILS-2.27.  Both published sample kernel versions for the 
+with a changed toolset for GCC-4.9.4 and BINTUILS-2.27.  Both published sample kernel versions of 4.8.5 for the 
 generic-x86-SSSE3 architecture processors and the AMD-15h Bulldozer AVX and later architecture
 were running stable on each an AMD-FX6100 and an older Intel Atom Dual Core. 
 The kernels were running under the Slackware-14.2-x86_32 distribution and the OSS-Tumbleweed32 as of 2016-05-12.
+For the 4.8.6 is a generic i686 nearest allmod version available.
 However these are samples and not tested under all conditions and come without any guarantee. 
 
 
