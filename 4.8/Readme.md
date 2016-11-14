@@ -20,7 +20,10 @@ ANNOTATIONS, CHANGES :
 ============================================
 
 The patchset "cold-sweat-under-chloridic-sky" contains the last unified selection 
-of patches for version 4.8.6 of linux kernel from the distributions
+of patches for version 4.8.6 of linux kernel from the distributions, the
+patchset "for-the-untrumped-trump-ass" contains the 4.8.7 full patchset
+together with the Realtime patches in time to this year's SuperFullMoon. 
+What or Who is more complete and faster? 
 
 Gentoo, Intel ClearOS, Sunxi-next-4.8.0-rc5, Ubuntu-4.8.0_27.29, OpenSuSE-4.8.3-1.1, 
 ZEN (4.8.4-2.patch with scheduler MUQSS and EXFAT), Parabola (patch-4.8.4-gnu-pck1.patch with TCP-Stealth and UKSM), 
@@ -41,7 +44,7 @@ that I wrote to change the symlinks to your current gcc-* commands.
 Find this in the toolchain/tools repository.
 
 
-2016-10-31, 
+2016-11-14, 
 
 Dieter Miosga 
  
