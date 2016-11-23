@@ -43,8 +43,31 @@ Please feel free to use the toolchain switcher
 that I wrote to change the symlinks to your current gcc-* commands. 
 Find this in the toolchain/tools repository.
 
+--------------------------------------   I M P O R T A N T   -------------------------------------------------
 
-2016-11-14, 
+During the revision of the patch runs, it appeared that a systematic inexactness or another Heisenbug in
+the patch utility causes in some cases erroneous code with the potential
+to produce involuntarily other Heisenbugs to the kernel WITHOUT ANY WARNING! 
+To provide an ad-hoc solution to make apparent the real behaviour and the needs
+of applied patches for modification, I added two separate patch utilities:
+
+
+apply-patcheshard-ash
+
+
+apply-patchessoft-ash 
+
+
+The first one uses the BusyBox applet patch, if you do not have the patch command
+separately installed. Anyway, there is the Fuzzyness parameter set to Zero!
+The second soft patcher script admits a fuzzyness of 120 and can be applied after the
+first one to catch and evaluate possible rejections. For the second, there is no
+fallback to or use of BusyBox instead  possible,  because BusyBox does not allow
+Fuzzyness.
+
+------------------------------------------------------------------------------------------------------------------
+
+2016-11-23, 
 
 Dieter Miosga 
  
