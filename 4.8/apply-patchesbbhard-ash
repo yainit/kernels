@@ -6,7 +6,7 @@ askfor_kerneldir()
   exit 0
 }
 #set -x
-patchcmdsoft="patch"
+patchcmdhard="/bin/busybox patch"
 HERE=`pwd`
 HERESUB="$(/bin/busybox basename $HERE 2>/dev/null)"
 KERNELDIR=""
@@ -85,17 +85,18 @@ AUFSDIR="not-existent"
 if [ "$3" != "" ]; then 
  AUFSDIR="$HERE/$3"
 fi
-if [ "$patchcmdsoft" != "" ]; then
-  $patchcmdsoft --help  >/dev/null 2>&1 
+
+if [ "$patchcmdhard" != "" ]; then
+  $patchcmdhard --help  >/dev/null 2>&1 
   RC=$?
-  if [ $RC -gt 0 ]; then
+    if [ $RC -gt 0 ]; then
       echo "No valid patch command found in your system. Aborting...." 
       exit 5
-  else
-    echo "Patch command '$patchcmdsoft' successfully verified. "
-    echo "(Version $($patchcmdsoft --version |/bin/busybox tr "\n" " " 2>/dev/null|/bin/busybox  cut -f3 -d" " 2>/dev/null))  Continuing...."
-    patchcmdsoft="$patchcmdsoft -F120 " 
-  fi
+    else
+      echo "Patch command '$patchcmdhard' successfully verified. "
+      echo "(Version $($patchcmdhard --version 2>&1 | /bin/busybox tr "\n" " " 2>/dev/null | /bin/busybox  cut -f5-6 -d" " 2>/dev/null))  Continuing...." 
+    
+    fi
 else
   echo "No patch command specified. Change this script! Aborting...." 
   exit 5
@@ -119,9 +120,9 @@ if [ -d $HERE/$PATCHDIR ]; then
   echo "Additional patches, proprietary and from distros (Fedora,SuSE,ArchLinux,..) -->"
 	cd $KERNELDIR
 	/bin/busybox find  $HERE/$PATCHDIR -maxdepth 1 -type f | /bin/busybox sort | while read l; do
-	  echo "Patching with '$patchcmdsoft' "
+	  echo "Patching with '$patchcmdhard' "
 	  echo  "---> $l"
-	  $patchcmdsoft -p1 -i $l
+	  $patchcmdhard -p1 -i $l
 	  RC=$?
 	  if [ $RC -gt 0 ]; then 
 	    echo "ERROR: Failed patching ---> $l with '$RC'"

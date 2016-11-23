@@ -25,8 +25,8 @@ patchset "for-the-untrumped-trump-ass" contains the 4.8.7 full patchset
 together with the Realtime patches in time to this year's SuperFullMoon. 
 What or Who is more complete and faster? 
 
-Gentoo, Intel ClearOS, Sunxi-next-4.8.0-rc5, Ubuntu-4.8.0_27.29, OpenSuSE-4.8.3-1.1, 
-ZEN (4.8.4-2.patch with scheduler MUQSS and EXFAT), Parabola (patch-4.8.4-gnu-pck1.patch with TCP-Stealth and UKSM), 
+Gentoo, Intel ClearOS, Sunxi-next-4.8.0-rc5 and Xunlong's Orange PI integration, Ubuntu-4.8.0_27.29, OpenSuSE-4.8.3-1.1/-4.8.6-2.1, 
+ZEN (4.8.6-2.patch with scheduler MUQSS and EXFAT), Parabola (patch-4.8.6-gnu-pck1.patch with TCP-Stealth and UKSM), 
 AUR rcn-libre-4.8.6-arm-v7, Debian-4.8.4, Mageia-Cauldron 6 4.8.2-mga1, Fedora 25 4.8.2, and with revised yainit-patches
 
 
@@ -52,18 +52,23 @@ To provide an ad-hoc solution to make apparent the real behaviour and the needs
 of applied patches for modification, I added two separate patch utilities:
 
 
+apply-patchesbbhard-ash
+
+
 apply-patcheshard-ash
 
 
 apply-patchessoft-ash 
 
 
-The first one uses the BusyBox applet patch, if you do not have the patch command
-separately installed. Anyway, there is the Fuzzyness parameter set to Zero!
-The second soft patcher script admits a fuzzyness of 120 and can be applied after the
-first one to catch and evaluate possible rejections. For the second, there is no
-fallback to or use of BusyBox instead  possible,  because BusyBox does not allow
-Fuzzyness.
+The first one uses only the BusyBox applet patch, This allows no fuzzyness
+for applying patches. To see the differences and possible failures, ot is recommended 
+separately install the GNU-patch command 
+The second hard patcher script will fall back to BusyBox patch if no other patch command available on your system. 
+Anyway, there is the Fuzzyness parameter set to Zero!
+The third and soft patcher script admits a fuzzyness of 120 and can be applied after the
+first ones to catch and evaluate possible rejections. For the soft patcher script, there is no
+fallback to or use of BusyBox instead  possible. 
 
 ------------------------------------------------------------------------------------------------------------------
 
