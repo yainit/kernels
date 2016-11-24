@@ -2,8 +2,7 @@ diff --git a/include/linux/mfd/tps65217.h b/include/linux/mfd/tps65217.h
 index 1c88231..c4f47e5 100644
 --- a/include/linux/mfd/tps65217.h
 +++ b/include/linux/mfd/tps65217.h
-@@ -258,8 +258,13 @@
-  *
+@@ -259,6 +259,11 @@
   * Device data may be used to access the TPS65217 chip
   */
  

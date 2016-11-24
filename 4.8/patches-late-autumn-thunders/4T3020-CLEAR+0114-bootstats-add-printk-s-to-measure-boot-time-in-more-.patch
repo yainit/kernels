@@ -24,7 +24,7 @@ index 5cb272a..d28fb7a 100644
  	 * patching.
  	 */
  
-+	printk("clr: Applying alternatives\n");
++	printk(KERN_DEBUG "clr: Applying alternatives\n");
  	apply_alternatives(__alt_instructions, __alt_instructions_end);
 +	printk(KERN_DEBUG "clr: Applying alternatives done\n");
  
@@ -56,8 +56,7 @@ diff --git a/init/main.c b/init/main.c
 index a8a58e2..a11d792 100644
 --- a/init/main.c
 +++ b/init/main.c
-@@ -753,9 +753,9 @@
- 	unsigned long long calltime, delta, rettime;
+@@ -754,7 +754,7 @@
  	unsigned long long duration;
  	int ret;
  
@@ -66,7 +65,6 @@ index a8a58e2..a11d792 100644
  	calltime = local_clock();
  	ret = fn();
  	rettime = local_clock();
- 	delta = rettime - calltime;
 diff --git a/kernel/kmod.c b/kernel/kmod.c
 index 0277d12..dc5a6ed 100644
 --- a/kernel/kmod.c
