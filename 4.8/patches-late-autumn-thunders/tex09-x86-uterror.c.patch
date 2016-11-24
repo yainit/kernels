@@ -1,0 +1,11 @@
+--- linux/drivers/acpi/acpica/uterror.c	2015-01-29 19:41:03.000000000 -0600
++++ linux/drivers/acpi/acpica/uterror.c	2015-01-31 14:54:27.194696223 -0600
+@@ -233,7 +233,7 @@
+ 		}
+ 	}
+ 
+-	acpi_os_printf(" Namespace lookup failure, %s",
++	acpi_os_printf(" Namespace lookup info, %s",
+ 		       acpi_format_exception(lookup_status));
+ 
+ 	ACPI_MSG_SUFFIX;

@@ -1,0 +1,43 @@
+--- linux-4.7.2/drivers/gpu/drm/i915/intel_opregion.c	2015-11-20 20:18:44.778584616 +0100
++++ linux-4.7.2/drivers/gpu/drm/i915/intel_opregion.c	2015-11-20 20:19:01.878490782 +0100
+@@ -726,6 +726,7 @@
+ 	acpi_status status;
+ 	u32 temp, max_outputs;
+ 	int i = 0;
++	bool done;
+ 
+ 	handle = ACPI_HANDLE(&pdev->dev);
+ 	if (!handle || acpi_bus_get_device(handle, &acpi_dev))
+@@ -757,11 +758,18 @@
+ 	max_outputs = ARRAY_SIZE(opregion->acpi->didl) +
+ 		ARRAY_SIZE(opregion->acpi->did2);
+ 
++	done = false;	
+ 	list_for_each_entry(acpi_cdev, &acpi_video_bus->children, node) {
+-		if (i >= max_outputs) {
+-			DRM_DEBUG_KMS("More than %u outputs detected via ACPI\n",
+-				      max_outputs);
+-			return;
++		if (i >= 8) { 
++			DRM_DEBUG_KMS("More than 8 outputs detected via ACPI, %s\n",
++				acpi_device_bid(acpi_cdev));
++		if (acpi_has_method(acpi_cdev->handle, "_BCM")) {
++			DRM_DEBUG_KMS("%s has _BCM, replacing 8th entry\n",
++				acpi_device_bid(acpi_cdev));
++				i = 7;
++				done = true;
++			} else
++				continue;
+ 		}
+ 		status = acpi_evaluate_integer(acpi_cdev->handle, "_ADR",
+ 					       NULL, &device_id);
+@@ -770,6 +778,9 @@
+ 				goto blind_set;
+ 			set_did(opregion, i++, (u32)(device_id & 0x0f0f));
+ 		}
++	
++		if (done)
++			return;
+ 	}
+ 
+ end:

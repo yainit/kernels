@@ -1,0 +1,11 @@
+--- linux-3.12.14/drivers/input/serioi/8042.c	2014-03-13 15:28:50.105888328 -0500
++++ linux-3.12.14/drivers/input/serio/i8042.c	2014-03-13 15:31:08.829894675 -0500
+@@ -780,7 +780,7 @@
+  */
+ 
+ 	if (i8042_toggle_aux(false)) {
+-		pr_warn("Failed to disable AUX port, but continuing anyway... Is this a SiS?\n");
++
+ 		pr_warn("If AUX port is really absent please use the 'i8042.noaux' option\n");
+ 	}
+ 

@@ -1,0 +1,125 @@
+From 8d5115dfaf49480fd0e9de88f65f471da432dba3 Mon Sep 17 00:00:00 2001
+From: Con Kolivas <kernel@kolivas.org>
+Date: Wed, 16 Nov 2016 19:31:38 +1100
+Subject: [PATCH] Use hrtimeouts when possible instead for msleep.
+
+---
+ include/linux/sched.h |  5 +++++
+ kernel/time/hrtimer.c | 51 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ kernel/time/timer.c   | 18 ++++++++++++++++--
+ 3 files changed, 72 insertions(+), 2 deletions(-)
+
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 7b9e719..5210e1d 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -437,6 +437,11 @@ extern signed long schedule_timeout_interruptible(signed long timeout);
+ extern signed long schedule_timeout_killable(signed long timeout);
+ extern signed long schedule_timeout_uninterruptible(signed long timeout);
+ extern signed long schedule_timeout_idle(signed long timeout);
++
++extern signed long schedule_msec_hrtimeout(signed long timeout);
++extern signed long schedule_msec_hrtimeout_interruptible(signed long timeout);
++extern signed long schedule_msec_hrtimeout_uninterruptible(signed long timeout);
++
+ asmlinkage void schedule(void);
+ extern void schedule_preempt_disabled(void);
+ 
+diff --git a/kernel/time/hrtimer.c b/kernel/time/hrtimer.c
+index 9ba7c82..bf11f9f 100644
+--- a/kernel/time/hrtimer.c
++++ b/kernel/time/hrtimer.c
+@@ -1788,3 +1788,54 @@ int __sched schedule_hrtimeout(ktime_t *expires,
+ 	return schedule_hrtimeout_range(expires, 0, mode);
+ }
+ EXPORT_SYMBOL_GPL(schedule_hrtimeout);
++
++/*
++ * As per schedule_hrtimeout but taskes a millisecond value and returns how
++ * many milliseconds are left.
++ */
++signed long __sched schedule_msec_hrtimeout(signed long timeout)
++{
++	struct hrtimer_sleeper t;
++	ktime_t expires;
++	int delta, secs;
++
++	if (!timeout) {
++		__set_current_state(TASK_RUNNING);
++		return 0;
++	}
++
++	secs = timeout / 1000;
++	delta = (timeout % 1000) * NSEC_PER_MSEC;
++	expires = ktime_set(secs, delta);
++
++	hrtimer_init_on_stack(&t.timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
++	hrtimer_set_expires_range_ns(&t.timer, expires, delta);
++
++	hrtimer_init_sleeper(&t, current);
++
++	hrtimer_start_expires(&t.timer, HRTIMER_MODE_REL);
++
++	if (likely(t.task))
++		schedule();
++
++	hrtimer_cancel(&t.timer);
++	destroy_hrtimer_on_stack(&t.timer);
++
++	__set_current_state(TASK_RUNNING);
++
++	expires = hrtimer_expires_remaining(&t.timer);
++	timeout = ktime_to_ms(expires);
++	return timeout < 0 ? 0 : timeout;
++}
++
++signed long __sched schedule_msec_hrtimeout_interruptible(signed long timeout)
++{
++	__set_current_state(TASK_INTERRUPTIBLE);
++	return schedule_msec_hrtimeout(timeout);
++}
++
++signed long __sched schedule_msec_hrtimeout_uninterruptible(signed long timeout)
++{
++	__set_current_state(TASK_UNINTERRUPTIBLE);
++	return schedule_msec_hrtimeout(timeout);
++}
+diff --git a/kernel/time/timer.c b/kernel/time/timer.c
+index e2e7158..192f569 100644
+--- a/kernel/time/timer.c
++++ b/kernel/time/timer.c
+@@ -1890,7 +1890,14 @@ void __init init_timers(void)
+  */
+ void msleep(unsigned int msecs)
+ {
+-	unsigned long timeout = msecs_to_jiffies(msecs) + 1;
++	unsigned long timeout;
++
++	if (likely(hrtimer_resolution < NSEC_PER_SEC / HZ)) {
++		while (msecs)
++			msecs = schedule_msec_hrtimeout_uninterruptible(msecs);
++		return;
++	}
++	timeout = msecs_to_jiffies(msecs) + 1;
+ 
+ 	while (timeout)
+ 		timeout = schedule_timeout_uninterruptible(timeout);
+@@ -1904,7 +1911,14 @@ EXPORT_SYMBOL(msleep);
+  */
+ unsigned long msleep_interruptible(unsigned int msecs)
+ {
+-	unsigned long timeout = msecs_to_jiffies(msecs) + 1;
++	unsigned long timeout;
++
++	if (likely(hrtimer_resolution < NSEC_PER_SEC / HZ)) {
++		while (msecs && !signal_pending(current))
++			msecs = schedule_msec_hrtimeout_interruptible(msecs);
++		return msecs;
++	}
++	timeout = msecs_to_jiffies(msecs) + 1;
+ 
+ 	while (timeout && !signal_pending(current))
+ 		timeout = schedule_timeout_interruptible(timeout);
+-- 
+2.7.4
+

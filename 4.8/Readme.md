@@ -23,19 +23,21 @@ The patchset "cold-sweat-under-chloridic-sky" contains the last unified selectio
 of patches for version 4.8.6 of linux kernel from the distributions, the
 patchset "for-the-untrumped-trump-ass" contains the 4.8.7 full patchset
 together with the Realtime patches in time to this year's SuperFullMoon. 
-What or Who is more complete and faster? 
+The patchset "late-autumn-thunders" contains the 4.8.10 full patchset, this turn
+with  scheduling by the brand new MuQSS 
 
-Gentoo, Intel ClearOS, Sunxi-next-4.8.0-rc5 and Xunlong's Orange PI integration, Ubuntu-4.8.0_27.29, OpenSuSE-4.8.3-1.1/-4.8.6-2.1, 
-ZEN (4.8.6-2.patch with scheduler MUQSS and EXFAT), Parabola (patch-4.8.6-gnu-pck1.patch with TCP-Stealth and UKSM), 
-AUR rcn-libre-4.8.6-arm-v7, Debian-4.8.4, Mageia-Cauldron 6 4.8.2-mga1, Fedora 25 4.8.2, and with revised yainit-patches
+Gentoo, Intel ClearOS for 4.8.7, Sunxi-next-4.8.0-rc5 and Xunlong's Orange PI Allwinner-H3 integration, 
+Ubuntu-4.8.0_27.29, OpenSuSE-4.8.3-1.1/-4.8.6-2.1, 
+ZEN (4.8.10-1.patch with scheduler MUQSS and EXFAT), Parabola (patch-4.8.6-gnu-pck1.patch with TCP-Stealth and UKSM), 
+AUR rcn-libre-4.8.6-arm-v7, Debian-4.8.4, Mageia-Cauldron 6 4.8.7-mga1, Fedora 25 4.8.2, and with revised yainit-patches
 
 
 These patches were all integrated and successfully compiled by Slackware-14.2-x86_32 distribution
-with a changed toolset for GCC-4.9.4 and BINTUILS-2.27.  Both published sample kernel versions of 4.8.5 for the 
+with a changed toolset to GCC-4.9.4 and BINTUILS-2.27.  Published sample kernel versions of 4.8.5 for the 
 generic-x86-SSSE3 architecture processors and the AMD-15h Bulldozer AVX and later architecture
 were running stable on each an AMD-FX6100 and an older Intel Atom Dual Core. 
 The kernels were running under the Slackware-14.2-x86_32 distribution and the OSS-Tumbleweed32 as of 2016-05-12.
-For the 4.8.6 is a generic i686 nearest allmod version available.
+For the 4.8.6 is a generic i686 mostmod / nearest allmod version available.
 However these are samples and not tested under all conditions and come without any guarantee. 
 
 
@@ -72,7 +74,7 @@ fallback to or use of BusyBox instead  possible.
 
 ------------------------------------------------------------------------------------------------------------------
 
-2016-11-23, 
+2016-11-24, 
 
 Dieter Miosga 
  
