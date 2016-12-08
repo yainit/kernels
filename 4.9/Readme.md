@@ -1,5 +1,5 @@
-                  KERNELS
-================================
+          PATCHES FOR KERNEL 4.9
+==================================================
 
 This repository contains the folders with the
 kernel patchsets chosen and written to make the 
@@ -16,19 +16,14 @@ are in the folders with the name libre-?.??-gnu
 
 Also use the scripts deblob*  for generation of the GNU/Libre kernel.
 
-ANNOTATIONS:
-============
+ANNOTATIONS, CHANGES :
+============================================
 
-These published patches have all resulted in running kernels 
-for machines of x86 architecture. 
+Patchsets for the 4.9, announced with long term support, 
+are coming soon ........
+------------------------------------------------------------------------------------------------------------------
 
-Do not worry on unresolved rejects during the BusyBox patch applet patching. 
-For my mainstream x86 hardware everything is working, but of
-course you may chnage the patches and eliminate the rejects.
-
-
-
-2016-01-07 through 2016-12-08, 
+2016-12-08, 
 
 Dieter Miosga 
  

@@ -23,8 +23,12 @@ The patchset "cold-sweat-under-chloridic-sky" contains the last unified selectio
 of patches for version 4.8.6 of linux kernel from the distributions, the
 patchset "for-the-untrumped-trump-ass" contains the 4.8.7 full patchset
 together with the Realtime patches in time to this year's SuperFullMoon. 
-The patchset "late-autumn-thunders" contains the 4.8.10 full patchset, this turn
-with  scheduling by the brand new MuQSS 
+The patchset "4.8.12-anticipated-distorted-xmas-melodies" contains 
+the 4.8.12 full patchset, this turn with scheduling by the brand new MuQSS 
+and with important corrections. Applied first to the 3.19 kernel, the kernel must not
+die after detection of missing instructions, if it is the yainit-kernel. 
+According to my experiments, this is a
+misleading information, the running processor has these instructions.  
 
 Gentoo, Intel ClearOS for 4.8.7, Sunxi-next-4.8.0-rc5 and Xunlong's Orange PI Allwinner-H3 integration, 
 Ubuntu-4.8.0_27.29, OpenSuSE-4.8.3-1.1/-4.8.6-2.1, 
