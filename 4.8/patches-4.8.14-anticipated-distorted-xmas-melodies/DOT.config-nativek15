@@ -55,7 +55,7 @@ CONFIG_PCK_INTERACTIVE=y
 CONFIG_INIT_ENV_ARG_LIMIT=32
 CONFIG_CROSS_COMPILE=""
 # CONFIG_COMPILE_TEST is not set
-CONFIG_LOCALVERSION="-native"
+CONFIG_LOCALVERSION="-nativeKABINI"
 # CONFIG_LOCALVERSION_AUTO is not set
 CONFIG_HAVE_KERNEL_GZIP=y
 CONFIG_HAVE_KERNEL_BZIP2=y
@@ -438,7 +438,7 @@ CONFIG_NO_BOOTMEM=y
 # CONFIG_MBROADWELL is not set
 # CONFIG_MSKYLAKE is not set
 CONFIG_MNATIVE=y
-CONFIG_X86_GENERIC=y
+# CONFIG_X86_GENERIC is not set
 CONFIG_X86_INTERNODE_CACHE_SHIFT=6
 CONFIG_X86_L1_CACHE_SHIFT=6
 CONFIG_X86_INTEL_USERCOPY=y
@@ -1829,6 +1829,7 @@ CONFIG_BLK_DEV_RSXX=m
 CONFIG_NVME_CORE=m
 CONFIG_BLK_DEV_NVME=m
 CONFIG_BLK_DEV_NVME_SCSI=y
+CONFIG_NVME_VENDOR_EXT_GOOGLE=y
 CONFIG_NVME_FABRICS=m
 CONFIG_NVME_TARGET=m
 CONFIG_NVME_TARGET_LOOP=m
@@ -2206,6 +2207,8 @@ CONFIG_NET_VENDOR_ALTEON=y
 CONFIG_ACENIC=m
 # CONFIG_ACENIC_OMIT_TIGON_I is not set
 CONFIG_ALTERA_TSE=m
+CONFIG_NET_VENDOR_AMAZON=y
+CONFIG_ENA_ETHERNET=m
 CONFIG_NET_VENDOR_AMD=y
 CONFIG_AMD8111_ETH=m
 CONFIG_PCNET32=m
@@ -7061,3 +7064,30 @@ CONFIG_RTL8723BS=m
 CONFIG_VIAHSS=m
 CONFIG_NDISWRAPPER=m
 # CONFIG_AES2501 is not set
+#  318a319,324
+#  > FLAGS =   -Wall -Wextra -Wno-unused -Wno-unused-parameter -Wno-system-headers -Wno-uninitialized -Wno-missing-field-initializers -Wno-strict-aliasing  -Wno-conversion  -Wno-system-headers -Wno-empty-body -Wstrict-prototypes  -Wunsafe-loop-optimizations -Wdisabled-optimization   -Wa,-msse-check=warning   -g0 -march=native   -mhard-float  -mcx16 -msahf -ffast-math -mssse3  -msse4a -msse4.1 -msse4.2 -msse2avx  -fexpensive-optimizations  -funsafe-loop-optimizations  -ffreestanding -fno-stack-protector  -fno-var-tracking-assignments -fno-delete-null-pointer-checks -fno-tracer -fno-jump-tables  --param max-inline-insns-single=131072 --param inline-unit-growth=350
+#  > GENFLAGS   =  -fmerge-all-constants
+#  > ARCHFLAGS  =  -mavx -msse -msse2 -msse3 -msse4a -mssse3  -msse4.1 -msse4.2 -msse2avx
+#  > ARCHPROC   =  -march=native   -g0 -mpreferred-stack-boundary=4 -fno-stack-protector -fno-strict-aliasing -fno-var-tracking-assignments
+#  > CFLAGS = $(FLAGS)
+#  > export FLAGS GENFLAGS ARCHFLAGS CFLAGS
+#  382,383c388,389
+#  < CFLAGS_MODULE   =
+#  < AFLAGS_MODULE   =
+#  ---
+#  > CFLAGS_MODULE   =  $(FLAGS)  $(ARCHFLAGS)
+#  > AFLAGS_MODULE   =  $(ARCHPROC) -v
+#  385,386c391,392
+#  < CFLAGS_KERNEL	=
+#  < AFLAGS_KERNEL	=
+#  ---
+#  > CFLAGS_KERNEL	=  $(FLAGS) $(GENFLAGS)
+#  > AFLAGS_KERNEL	=  -v  $(ARCHPROC)
+#  Using built-in specs.
+#  COLLECT_GCC=gcc
+#  COLLECT_LTO_WRAPPER=/usr/lib/gcc/4.9.4-avx/gcc/i686-pc-linux-gnu/4.9.4/lto-wrapper
+#  Target: i686-pc-linux-gnu
+#  Configured with: ../gcc-4.9.4/configure --prefix=/usr --mandir=/usr/share/man --libdir=/usr/lib/gcc/4.9.4-avx --libexecdir=/usr/lib/gcc/4.9.4-avx --bindir=/usr/bin --sbindir=/usr/sbin --datadir=/usr/share --includedir=/usr/include --infodir=/usr/share/info --program-suffix=-4.9.4-avx --enable-shared --disable-bootstrap --enable-languages=c,c++,fortran,lto,objc --enable-threads=posix --enable-checking=release --enable-objc-gc --with-system-zlib --with-python-dir=/lib/python2.7/site-packages --enable-libstdcxx-dual-abi --with-default-libstdcxx-abi=gcc4-compatible --disable-libunwind-exceptions --enable-__cxa_atexit --enable-libssp --enable-lto --disable-install-libiberty --with-gnu-ld --verbose --enable-java-home --with-java-home=/usr/lib/jvm/jre --with-jvm-root-dir=/usr/lib/jvm --with-jvm-jar-dir=/usr/lib/jvm/jvm-exports --with-arch-directory=i386 --with-antlr-jar=/root/slackware-current/source/d/gcc/antlr-runtime-3.4.jar --enable-java-awt=gtk --disable-gtktest --with-arch=bdver1 --target=i686-pc-linux-gnu --build=i686-pc-linux-gnu --host=i686-pc-linux-gnu
+#  Thread model: posix
+#  gcc version 4.9.4 (GCC)
+#  GNU assembler version 2.27 (i686-pc-linux-gnu) using BFD version (dmiosga6200_at_gmail_dot_com) 2.27

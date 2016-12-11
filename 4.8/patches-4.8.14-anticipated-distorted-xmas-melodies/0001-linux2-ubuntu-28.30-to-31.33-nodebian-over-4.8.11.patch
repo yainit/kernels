@@ -1,6 +1,6 @@
-diff -uNr linux-4.8.11-28.30nodeb/Documentation/networking/00-INDEX linux-4.8.11-29.31nodeb/Documentation/networking/00-INDEX
+diff -uNr linux-4.8.11-28.30nodeb/Documentation/networking/00-INDEX linux-4.8.11-31.33nodeb/Documentation/networking/00-INDEX
 --- linux-4.8.11-28.30nodeb/Documentation/networking/00-INDEX	2016-10-02 23:24:33.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/Documentation/networking/00-INDEX	2016-12-07 17:31:58.863069054 +0000
++++ linux-4.8.11-31.33nodeb/Documentation/networking/00-INDEX	2016-12-11 21:46:53.708418065 +0000
 @@ -74,6 +74,8 @@
  	- The DNS resolver module allows kernel servies to make DNS queries.
  driver.txt
@@ -10,9 +10,9 @@ diff -uNr linux-4.8.11-28.30nodeb/Documentation/networking/00-INDEX linux-4.8.11
  e100.txt
  	- info on Intel's EtherExpress PRO/100 line of 10/100 boards
  e1000.txt
-diff -uNr linux-4.8.11-28.30nodeb/Documentation/sysctl/fs.txt linux-4.8.11-29.31nodeb/Documentation/sysctl/fs.txt
+diff -uNr linux-4.8.11-28.30nodeb/Documentation/sysctl/fs.txt linux-4.8.11-31.33nodeb/Documentation/sysctl/fs.txt
 --- linux-4.8.11-28.30nodeb/Documentation/sysctl/fs.txt	2016-10-02 23:24:33.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/Documentation/sysctl/fs.txt	2016-12-07 17:31:58.863069054 +0000
++++ linux-4.8.11-31.33nodeb/Documentation/sysctl/fs.txt	2016-12-11 21:46:53.708418065 +0000
 @@ -265,6 +265,13 @@
  
  ==============================================================
@@ -27,9 +27,9 @@ diff -uNr linux-4.8.11-28.30nodeb/Documentation/sysctl/fs.txt linux-4.8.11-29.31
  
  2. /proc/sys/fs/binfmt_misc
  ----------------------------------------------------------
-diff -uNr linux-4.8.11-28.30nodeb/MAINTAINERS linux-4.8.11-29.31nodeb/MAINTAINERS
---- linux-4.8.11-28.30nodeb/MAINTAINERS	2016-12-07 17:29:01.760067499 +0000
-+++ linux-4.8.11-29.31nodeb/MAINTAINERS	2016-12-07 17:31:58.869069054 +0000
+diff -uNr linux-4.8.11-28.30nodeb/MAINTAINERS linux-4.8.11-31.33nodeb/MAINTAINERS
+--- linux-4.8.11-28.30nodeb/MAINTAINERS	2016-12-11 21:51:03.688420259 +0000
++++ linux-4.8.11-31.33nodeb/MAINTAINERS	2016-12-11 21:46:53.714418065 +0000
 @@ -636,6 +636,15 @@
  F:	include/linux/altera_uart.h
  F:	include/linux/altera_jtaguart.h
@@ -46,84 +46,84 @@ diff -uNr linux-4.8.11-28.30nodeb/MAINTAINERS linux-4.8.11-29.31nodeb/MAINTAINER
  AMD CRYPTOGRAPHIC COPROCESSOR (CCP) DRIVER
  M:	Tom Lendacky <thomas.lendacky@amd.com>
  M:	Gary Hook <gary.hook@amd.com>
-#diff -uNr linux-4.8.11-28.30nodeb/arch/sparc/lib/user_fixup.c #linux-4.8.11-29.31nodeb/arch/sparc/lib/user_fixup.c
-#--- linux-4.8.11-28.30nodeb/arch/sparc/lib/user_fixup.c	1970-01-01 00:00:00.000000000 +0000
-#+++ linux-4.8.11-29.31nodeb/arch/sparc/lib/user_fixup.c	2016-10-02 23:24:33.000000000 +0000
-#@@ -0,0 +1,71 @@
-#+/* user_fixup.c: Fix up user copy faults.
-#+ *
-#+ * Copyright (C) 2004 David S. Miller <davem@redhat.com>
-#+ */
-#+
-#+#include <linux/compiler.h>
-#+#include <linux/kernel.h>
-#+#include <linux/string.h>
-#+#include <linux/errno.h>
-#+#include <linux/module.h>
-#+
-#+#include <asm/uaccess.h>
-#+
-#+/* Calculating the exact fault address when using
-#+ * block loads and stores can be very complicated.
-#+ *
-#+ * Instead of trying to be clever and handling all
-#+ * of the cases, just fix things up simply here.
-#+ */
-#+
-#+static unsigned long compute_size(unsigned long start, unsigned long size, unsigned long *offset)
-#+{
-#+	unsigned long fault_addr = current_thread_info()->fault_address;
-#+	unsigned long end = start + size;
-#+
-#+	if (fault_addr < start || fault_addr >= end) {
-#+		*offset = 0;
-#+	} else {
-#+		*offset = fault_addr - start;
-#+		size = end - fault_addr;
-#+	}
-#+	return size;
-#+}
-#+
-#+unsigned long copy_from_user_fixup(void *to, const void __user *from, unsigned long size)
-#+{
-#+	unsigned long offset;
-#+
-#+	size = compute_size((unsigned long) from, size, &offset);
-#+	if (likely(size))
-#+		memset(to + offset, 0, size);
-#+
-#+	return size;
-#+}
-#+EXPORT_SYMBOL(copy_from_user_fixup);
-#+
-#+unsigned long copy_to_user_fixup(void __user *to, const void *from, unsigned long size)
-#+{
-#+	unsigned long offset;
-#+
-#+	return compute_size((unsigned long) to, size, &offset);
-#+}
-#+EXPORT_SYMBOL(copy_to_user_fixup);
-#+
-#+unsigned long copy_in_user_fixup(void __user *to, void __user *from, unsigned long size)
-#+{
-#+	unsigned long fault_addr = current_thread_info()->fault_address;
-#+	unsigned long start = (unsigned long) to;
-#+	unsigned long end = start + size;
-#+
-#+	if (fault_addr >= start && fault_addr < end)
-#+		return end - fault_addr;
-#+
-#+	start = (unsigned long) from;
-#+	end = start + size;
-#+	if (fault_addr >= start && fault_addr < end)
-#+		return end - fault_addr;
-#+
-#+	return size;
-#+}
-#+EXPORT_SYMBOL(copy_in_user_fixup);
-diff -uNr linux-4.8.11-28.30nodeb/arch/x86/events/intel/core.c linux-4.8.11-29.31nodeb/arch/x86/events/intel/core.c
+diff -uNr linux-4.8.11-28.30nodeb/arch/sparc/lib/user_fixup.c linux-4.8.11-31.33nodeb/arch/sparc/lib/user_fixup.c
+--- linux-4.8.11-28.30nodeb/arch/sparc/lib/user_fixup.c	1970-01-01 00:00:00.000000000 +0000
++++ linux-4.8.11-31.33nodeb/arch/sparc/lib/user_fixup.c	2016-10-02 23:24:33.000000000 +0000
+@@ -0,0 +1,71 @@
++/* user_fixup.c: Fix up user copy faults.
++ *
++ * Copyright (C) 2004 David S. Miller <davem@redhat.com>
++ */
++
++#include <linux/compiler.h>
++#include <linux/kernel.h>
++#include <linux/string.h>
++#include <linux/errno.h>
++#include <linux/module.h>
++
++#include <asm/uaccess.h>
++
++/* Calculating the exact fault address when using
++ * block loads and stores can be very complicated.
++ *
++ * Instead of trying to be clever and handling all
++ * of the cases, just fix things up simply here.
++ */
++
++static unsigned long compute_size(unsigned long start, unsigned long size, unsigned long *offset)
++{
++	unsigned long fault_addr = current_thread_info()->fault_address;
++	unsigned long end = start + size;
++
++	if (fault_addr < start || fault_addr >= end) {
++		*offset = 0;
++	} else {
++		*offset = fault_addr - start;
++		size = end - fault_addr;
++	}
++	return size;
++}
++
++unsigned long copy_from_user_fixup(void *to, const void __user *from, unsigned long size)
++{
++	unsigned long offset;
++
++	size = compute_size((unsigned long) from, size, &offset);
++	if (likely(size))
++		memset(to + offset, 0, size);
++
++	return size;
++}
++EXPORT_SYMBOL(copy_from_user_fixup);
++
++unsigned long copy_to_user_fixup(void __user *to, const void *from, unsigned long size)
++{
++	unsigned long offset;
++
++	return compute_size((unsigned long) to, size, &offset);
++}
++EXPORT_SYMBOL(copy_to_user_fixup);
++
++unsigned long copy_in_user_fixup(void __user *to, void __user *from, unsigned long size)
++{
++	unsigned long fault_addr = current_thread_info()->fault_address;
++	unsigned long start = (unsigned long) to;
++	unsigned long end = start + size;
++
++	if (fault_addr >= start && fault_addr < end)
++		return end - fault_addr;
++
++	start = (unsigned long) from;
++	end = start + size;
++	if (fault_addr >= start && fault_addr < end)
++		return end - fault_addr;
++
++	return size;
++}
++EXPORT_SYMBOL(copy_in_user_fixup);
+diff -uNr linux-4.8.11-28.30nodeb/arch/x86/events/intel/core.c linux-4.8.11-31.33nodeb/arch/x86/events/intel/core.c
 --- linux-4.8.11-28.30nodeb/arch/x86/events/intel/core.c	2016-10-02 23:24:33.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/arch/x86/events/intel/core.c	2016-12-07 17:31:58.922069054 +0000
++++ linux-4.8.11-31.33nodeb/arch/x86/events/intel/core.c	2016-12-11 21:46:53.769418065 +0000
 @@ -3893,6 +3893,7 @@
  		break;
  
@@ -141,9 +141,9 @@ diff -uNr linux-4.8.11-28.30nodeb/arch/x86/events/intel/core.c linux-4.8.11-29.3
  		break;
  
  	case INTEL_FAM6_SKYLAKE_MOBILE:
-diff -uNr linux-4.8.11-28.30nodeb/arch/x86/events/intel/rapl.c linux-4.8.11-29.31nodeb/arch/x86/events/intel/rapl.c
+diff -uNr linux-4.8.11-28.30nodeb/arch/x86/events/intel/rapl.c linux-4.8.11-31.33nodeb/arch/x86/events/intel/rapl.c
 --- linux-4.8.11-28.30nodeb/arch/x86/events/intel/rapl.c	2016-10-02 23:24:33.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/arch/x86/events/intel/rapl.c	2016-12-07 17:31:58.922069054 +0000
++++ linux-4.8.11-31.33nodeb/arch/x86/events/intel/rapl.c	2016-12-11 21:46:53.769418065 +0000
 @@ -761,6 +761,7 @@
  	X86_RAPL_MODEL_MATCH(INTEL_FAM6_BROADWELL_XEON_D, hsw_rapl_init),
  
@@ -152,9 +152,9 @@ diff -uNr linux-4.8.11-28.30nodeb/arch/x86/events/intel/rapl.c linux-4.8.11-29.3
  
  	X86_RAPL_MODEL_MATCH(INTEL_FAM6_SKYLAKE_MOBILE,  skl_rapl_init),
  	X86_RAPL_MODEL_MATCH(INTEL_FAM6_SKYLAKE_DESKTOP, skl_rapl_init),
-diff -uNr linux-4.8.11-28.30nodeb/arch/x86/events/intel/uncore.c linux-4.8.11-29.31nodeb/arch/x86/events/intel/uncore.c
---- linux-4.8.11-28.30nodeb/arch/x86/events/intel/uncore.c	2016-12-07 17:29:01.794067499 +0000
-+++ linux-4.8.11-29.31nodeb/arch/x86/events/intel/uncore.c	2016-12-07 17:31:58.923069054 +0000
+diff -uNr linux-4.8.11-28.30nodeb/arch/x86/events/intel/uncore.c linux-4.8.11-31.33nodeb/arch/x86/events/intel/uncore.c
+--- linux-4.8.11-28.30nodeb/arch/x86/events/intel/uncore.c	2016-12-11 21:51:03.721420260 +0000
++++ linux-4.8.11-31.33nodeb/arch/x86/events/intel/uncore.c	2016-12-11 21:46:53.770418065 +0000
 @@ -1347,6 +1347,7 @@
  	X86_UNCORE_MODEL_MATCH(INTEL_FAM6_BROADWELL_X,	  bdx_uncore_init),
  	X86_UNCORE_MODEL_MATCH(INTEL_FAM6_BROADWELL_XEON_D, bdx_uncore_init),
@@ -163,9 +163,9 @@ diff -uNr linux-4.8.11-28.30nodeb/arch/x86/events/intel/uncore.c linux-4.8.11-29
  	X86_UNCORE_MODEL_MATCH(INTEL_FAM6_SKYLAKE_DESKTOP,skl_uncore_init),
  	X86_UNCORE_MODEL_MATCH(INTEL_FAM6_SKYLAKE_MOBILE, skl_uncore_init),
  	X86_UNCORE_MODEL_MATCH(INTEL_FAM6_SKYLAKE_X,      skx_uncore_init),
-diff -uNr linux-4.8.11-28.30nodeb/arch/x86/include/asm/intel-family.h linux-4.8.11-29.31nodeb/arch/x86/include/asm/intel-family.h
---- linux-4.8.11-28.30nodeb/arch/x86/include/asm/intel-family.h	2016-12-07 17:29:01.798067499 +0000
-+++ linux-4.8.11-29.31nodeb/arch/x86/include/asm/intel-family.h	2016-12-07 17:31:58.926069054 +0000
+diff -uNr linux-4.8.11-28.30nodeb/arch/x86/include/asm/intel-family.h linux-4.8.11-31.33nodeb/arch/x86/include/asm/intel-family.h
+--- linux-4.8.11-28.30nodeb/arch/x86/include/asm/intel-family.h	2016-12-11 21:51:03.724420260 +0000
++++ linux-4.8.11-31.33nodeb/arch/x86/include/asm/intel-family.h	2016-12-11 21:46:53.773418065 +0000
 @@ -64,5 +64,6 @@
  /* Xeon Phi */
  
@@ -173,9 +173,9 @@ diff -uNr linux-4.8.11-28.30nodeb/arch/x86/include/asm/intel-family.h linux-4.8.
 +#define INTEL_FAM6_XEON_PHI_KNM		0x85 /* Knights Mill */
  
  #endif /* _ASM_X86_INTEL_FAMILY_H */
-diff -uNr linux-4.8.11-28.30nodeb/drivers/bluetooth/btusb.c linux-4.8.11-29.31nodeb/drivers/bluetooth/btusb.c
---- linux-4.8.11-28.30nodeb/drivers/bluetooth/btusb.c	2016-12-07 17:29:02.840067508 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/bluetooth/btusb.c	2016-12-07 17:31:59.980069063 +0000
+diff -uNr linux-4.8.11-28.30nodeb/drivers/bluetooth/btusb.c linux-4.8.11-31.33nodeb/drivers/bluetooth/btusb.c
+--- linux-4.8.11-28.30nodeb/drivers/bluetooth/btusb.c	2016-12-11 21:51:04.758420269 +0000
++++ linux-4.8.11-31.33nodeb/drivers/bluetooth/btusb.c	2016-12-11 21:46:54.872418075 +0000
 @@ -248,6 +248,7 @@
  
  	/* QCA ROME chipset */
@@ -184,9 +184,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/bluetooth/btusb.c linux-4.8.11-29.31no
  	{ USB_DEVICE(0x0cf3, 0xe300), .driver_info = BTUSB_QCA_ROME },
  	{ USB_DEVICE(0x0cf3, 0xe360), .driver_info = BTUSB_QCA_ROME },
  	{ USB_DEVICE(0x0489, 0xe092), .driver_info = BTUSB_QCA_ROME },
-diff -uNr linux-4.8.11-28.30nodeb/drivers/hid/hid-alps.c linux-4.8.11-29.31nodeb/drivers/hid/hid-alps.c
+diff -uNr linux-4.8.11-28.30nodeb/drivers/hid/hid-alps.c linux-4.8.11-31.33nodeb/drivers/hid/hid-alps.c
 --- linux-4.8.11-28.30nodeb/drivers/hid/hid-alps.c	2016-10-02 23:24:33.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/hid/hid-alps.c	2016-12-07 17:32:00.050069064 +0000
++++ linux-4.8.11-31.33nodeb/drivers/hid/hid-alps.c	2016-12-11 21:46:54.943418076 +0000
 @@ -190,16 +190,16 @@
  			if (z != 0) {
  				input_mt_report_slot_state(hdata->input,
@@ -210,9 +210,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/hid/hid-alps.c linux-4.8.11-29.31nodeb
  		}
  
  		input_mt_sync_frame(hdata->input);
-diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/Kconfig linux-4.8.11-29.31nodeb/drivers/net/ethernet/Kconfig
+diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/Kconfig linux-4.8.11-31.33nodeb/drivers/net/ethernet/Kconfig
 --- linux-4.8.11-28.30nodeb/drivers/net/ethernet/Kconfig	2016-10-02 23:24:33.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/net/ethernet/Kconfig	2016-12-07 17:32:00.119069065 +0000
++++ linux-4.8.11-31.33nodeb/drivers/net/ethernet/Kconfig	2016-12-11 21:46:55.013418076 +0000
 @@ -24,6 +24,7 @@
  source "drivers/net/ethernet/allwinner/Kconfig"
  source "drivers/net/ethernet/alteon/Kconfig"
@@ -221,9 +221,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/Kconfig linux-4.8.11-29.3
  source "drivers/net/ethernet/amd/Kconfig"
  source "drivers/net/ethernet/apm/Kconfig"
  source "drivers/net/ethernet/apple/Kconfig"
-diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/Makefile linux-4.8.11-29.31nodeb/drivers/net/ethernet/Makefile
+diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/Makefile linux-4.8.11-31.33nodeb/drivers/net/ethernet/Makefile
 --- linux-4.8.11-28.30nodeb/drivers/net/ethernet/Makefile	2016-10-02 23:24:33.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/net/ethernet/Makefile	2016-12-07 17:32:00.119069065 +0000
++++ linux-4.8.11-31.33nodeb/drivers/net/ethernet/Makefile	2016-12-11 21:46:55.014418076 +0000
 @@ -10,6 +10,7 @@
  obj-$(CONFIG_NET_VENDOR_ALLWINNER) += allwinner/
  obj-$(CONFIG_NET_VENDOR_ALTEON) += alteon/
@@ -232,9 +232,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/Makefile linux-4.8.11-29.
  obj-$(CONFIG_NET_VENDOR_AMD) += amd/
  obj-$(CONFIG_NET_XGENE) += apm/
  obj-$(CONFIG_NET_VENDOR_APPLE) += apple/
-diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/Kconfig linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/Kconfig
+diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/Kconfig linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/Kconfig
 --- linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/Kconfig	1970-01-01 00:00:00.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/Kconfig	2016-12-07 17:32:00.120069065 +0000
++++ linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/Kconfig	2016-12-11 21:46:55.014418076 +0000
 @@ -0,0 +1,27 @@
 +#
 +# Amazon network device configuration
@@ -263,18 +263,18 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/Kconfig linux-4.8.
 +	  The module will be called ena.
 +
 +endif #NET_VENDOR_AMAZON
-diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/Makefile linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/Makefile
+diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/Makefile linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/Makefile
 --- linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/Makefile	1970-01-01 00:00:00.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/Makefile	2016-12-07 17:32:00.120069065 +0000
++++ linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/Makefile	2016-12-11 21:46:55.014418076 +0000
 @@ -0,0 +1,5 @@
 +#
 +# Makefile for the Amazon network device drivers.
 +#
 +
 +obj-$(CONFIG_ENA_ETHERNET) += ena/
-diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/Makefile linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/Makefile
+diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/Makefile linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/Makefile
 --- linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/Makefile	1970-01-01 00:00:00.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/Makefile	2016-12-07 17:32:00.120069065 +0000
++++ linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/Makefile	2016-12-11 21:46:55.014418076 +0000
 @@ -0,0 +1,7 @@
 +#
 +# Makefile for the Elastic Network Adapter (ENA) device drivers.
@@ -283,9 +283,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/Makefile linux
 +obj-$(CONFIG_ENA_ETHERNET) += ena.o
 +
 +ena-y := ena_netdev.o ena_com.o ena_eth_com.o ena_ethtool.o
-diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_admin_defs.h linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
+diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_admin_defs.h linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
 --- linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_admin_defs.h	1970-01-01 00:00:00.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_admin_defs.h	2016-12-07 17:32:00.122069065 +0000
++++ linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_admin_defs.h	2016-12-11 21:46:55.016418076 +0000
 @@ -0,0 +1,973 @@
 +/*
 + * Copyright 2015 - 2016 Amazon.com, Inc. or its affiliates.
@@ -1260,9 +1260,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_admin_defs
 +#define ENA_ADMIN_AENQ_LINK_CHANGE_DESC_LINK_STATUS_MASK BIT(0)
 +
 +#endif /*_ENA_ADMIN_H_ */
-diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_com.c linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_com.c
+diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_com.c linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_com.c
 --- linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_com.c	1970-01-01 00:00:00.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_com.c	2016-12-07 17:32:00.126069065 +0000
++++ linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_com.c	2016-12-11 21:46:55.020418076 +0000
 @@ -0,0 +1,2666 @@
 +/*
 + * Copyright 2015 Amazon.com, Inc. or its affiliates.
@@ -3930,9 +3930,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_com.c linu
 +	intr_moder_tbl[level].pkts_per_interval;
 +	entry->bytes_per_interval = intr_moder_tbl[level].bytes_per_interval;
 +}
-diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_com.h linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_com.h
+diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_com.h linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_com.h
 --- linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_com.h	1970-01-01 00:00:00.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_com.h	2016-12-07 17:32:00.128069065 +0000
++++ linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_com.h	2016-12-11 21:46:55.022418076 +0000
 @@ -0,0 +1,1038 @@
 +/*
 + * Copyright 2015 Amazon.com, Inc. or its affiliates.
@@ -4972,9 +4972,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_com.h linu
 +}
 +
 +#endif /* !(ENA_COM) */
-diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_common_defs.h linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_common_defs.h
+diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_common_defs.h linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_common_defs.h
 --- linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_common_defs.h	1970-01-01 00:00:00.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_common_defs.h	2016-12-07 17:32:00.128069065 +0000
++++ linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_common_defs.h	2016-12-11 21:46:55.023418076 +0000
 @@ -0,0 +1,48 @@
 +/*
 + * Copyright 2015 - 2016 Amazon.com, Inc. or its affiliates.
@@ -5024,9 +5024,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_common_def
 +};
 +
 +#endif /*_ENA_COMMON_H_ */
-diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_eth_com.c linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_eth_com.c
+diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_eth_com.c linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_eth_com.c
 --- linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_eth_com.c	1970-01-01 00:00:00.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_eth_com.c	2016-12-07 17:32:00.129069065 +0000
++++ linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_eth_com.c	2016-12-11 21:46:55.024418076 +0000
 @@ -0,0 +1,501 @@
 +/*
 + * Copyright 2015 Amazon.com, Inc. or its affiliates.
@@ -5529,9 +5529,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_eth_com.c 
 +
 +	return 0;
 +}
-diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_eth_com.h linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_eth_com.h
+diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_eth_com.h linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_eth_com.h
 --- linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_eth_com.h	1970-01-01 00:00:00.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_eth_com.h	2016-12-07 17:32:00.130069065 +0000
++++ linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_eth_com.h	2016-12-11 21:46:55.024418076 +0000
 @@ -0,0 +1,160 @@
 +/*
 + * Copyright 2015 Amazon.com, Inc. or its affiliates.
@@ -5693,9 +5693,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_eth_com.h 
 +}
 +
 +#endif /* ENA_ETH_COM_H_ */
-diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_eth_io_defs.h linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_eth_io_defs.h
+diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_eth_io_defs.h linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_eth_io_defs.h
 --- linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_eth_io_defs.h	1970-01-01 00:00:00.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_eth_io_defs.h	2016-12-07 17:32:00.130069065 +0000
++++ linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_eth_io_defs.h	2016-12-11 21:46:55.025418076 +0000
 @@ -0,0 +1,416 @@
 +/*
 + * Copyright 2015 - 2016 Amazon.com, Inc. or its affiliates.
@@ -6113,9 +6113,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_eth_io_def
 +#define ENA_ETH_IO_NUMA_NODE_CFG_REG_ENABLED_MASK BIT(31)
 +
 +#endif /*_ENA_ETH_IO_H_ */
-diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_ethtool.c linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_ethtool.c
+diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_ethtool.c linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_ethtool.c
 --- linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_ethtool.c	1970-01-01 00:00:00.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_ethtool.c	2016-12-07 17:32:00.132069065 +0000
++++ linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_ethtool.c	2016-12-11 21:46:55.026418076 +0000
 @@ -0,0 +1,895 @@
 +/*
 + * Copyright 2015 Amazon.com, Inc. or its affiliates.
@@ -7012,9 +7012,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_ethtool.c 
 +{
 +	ena_dump_stats_ex(adapter, NULL);
 +}
-diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_netdev.c linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_netdev.c
+diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_netdev.c linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_netdev.c
 --- linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_netdev.c	1970-01-01 00:00:00.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_netdev.c	2016-12-07 17:32:00.137069065 +0000
++++ linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_netdev.c	2016-12-11 21:46:55.032418076 +0000
 @@ -0,0 +1,3280 @@
 +/*
 + * Copyright 2015 Amazon.com, Inc. or its affiliates.
@@ -10296,9 +10296,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_netdev.c l
 +
 +module_init(ena_init);
 +module_exit(ena_cleanup);
-diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_netdev.h linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_netdev.h
+diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_netdev.h linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_netdev.h
 --- linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_netdev.h	1970-01-01 00:00:00.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_netdev.h	2016-12-07 17:32:00.138069065 +0000
++++ linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_netdev.h	2016-12-11 21:46:55.033418076 +0000
 @@ -0,0 +1,324 @@
 +/*
 + * Copyright 2015 Amazon.com, Inc. or its affiliates.
@@ -10624,9 +10624,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_netdev.h l
 +int ena_get_sset_count(struct net_device *netdev, int sset);
 +
 +#endif /* !(ENA_H) */
-diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_pci_id_tbl.h linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_pci_id_tbl.h
+diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_pci_id_tbl.h linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_pci_id_tbl.h
 --- linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_pci_id_tbl.h	1970-01-01 00:00:00.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_pci_id_tbl.h	2016-12-07 17:32:00.138069065 +0000
++++ linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_pci_id_tbl.h	2016-12-11 21:46:55.033418076 +0000
 @@ -0,0 +1,67 @@
 +/*
 + * Copyright 2015 Amazon.com, Inc. or its affiliates.
@@ -10695,9 +10695,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_pci_id_tbl
 +};
 +
 +#endif /* ENA_PCI_ID_TBL_H_ */
-diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_regs_defs.h linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_regs_defs.h
+diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_regs_defs.h linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_regs_defs.h
 --- linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_regs_defs.h	1970-01-01 00:00:00.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/net/ethernet/amazon/ena/ena_regs_defs.h	2016-12-07 17:32:00.138069065 +0000
++++ linux-4.8.11-31.33nodeb/drivers/net/ethernet/amazon/ena/ena_regs_defs.h	2016-12-11 21:46:55.034418076 +0000
 @@ -0,0 +1,133 @@
 +/*
 + * Copyright 2015 - 2016 Amazon.com, Inc. or its affiliates.
@@ -10832,9 +10832,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/net/ethernet/amazon/ena/ena_regs_defs.
 +#define ENA_REGS_RSS_IND_ENTRY_UPDATE_CQ_IDX_MASK		0xffff0000
 +
 +#endif /*_ENA_REGS_H_ */
-diff -uNr linux-4.8.11-28.30nodeb/drivers/nvme/host/Kconfig linux-4.8.11-29.31nodeb/drivers/nvme/host/Kconfig
+diff -uNr linux-4.8.11-28.30nodeb/drivers/nvme/host/Kconfig linux-4.8.11-31.33nodeb/drivers/nvme/host/Kconfig
 --- linux-4.8.11-28.30nodeb/drivers/nvme/host/Kconfig	2016-10-02 23:24:33.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/nvme/host/Kconfig	2016-12-07 17:32:00.198069065 +0000
++++ linux-4.8.11-31.33nodeb/drivers/nvme/host/Kconfig	2016-12-11 21:46:55.096418077 +0000
 @@ -25,6 +25,13 @@
  	  emulation to provide stable device names for mount by id, like
  	  some OpenSuSE and SLES versions.
@@ -10849,9 +10849,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/nvme/host/Kconfig linux-4.8.11-29.31no
  config NVME_FABRICS
  	tristate
  
-diff -uNr linux-4.8.11-28.30nodeb/drivers/nvme/host/pci.c linux-4.8.11-29.31nodeb/drivers/nvme/host/pci.c
---- linux-4.8.11-28.30nodeb/drivers/nvme/host/pci.c	2016-12-07 17:29:41.296067846 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/nvme/host/pci.c	2016-12-07 17:32:00.199069065 +0000
+diff -uNr linux-4.8.11-28.30nodeb/drivers/nvme/host/pci.c linux-4.8.11-31.33nodeb/drivers/nvme/host/pci.c
+--- linux-4.8.11-28.30nodeb/drivers/nvme/host/pci.c	2016-12-11 21:51:59.762420752 +0000
++++ linux-4.8.11-31.33nodeb/drivers/nvme/host/pci.c	2016-12-11 21:46:55.097418077 +0000
 @@ -50,6 +50,9 @@
  #define SQ_SIZE(depth)		(depth * sizeof(struct nvme_command))
  #define CQ_SIZE(depth)		(depth * sizeof(struct nvme_completion))
@@ -11098,9 +11098,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/nvme/host/pci.c linux-4.8.11-29.31node
  
  	if (pdev->msi_enabled)
  		pci_disable_msi(pdev);
-diff -uNr linux-4.8.11-28.30nodeb/drivers/scsi/ibmvscsi_tgt/ibmvscsi_tgt.c linux-4.8.11-29.31nodeb/drivers/scsi/ibmvscsi_tgt/ibmvscsi_tgt.c
---- linux-4.8.11-28.30nodeb/drivers/scsi/ibmvscsi_tgt/ibmvscsi_tgt.c	2016-12-07 17:29:02.988067510 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/scsi/ibmvscsi_tgt/ibmvscsi_tgt.c	2016-12-07 17:32:00.234069066 +0000
+diff -uNr linux-4.8.11-28.30nodeb/drivers/scsi/ibmvscsi_tgt/ibmvscsi_tgt.c linux-4.8.11-31.33nodeb/drivers/scsi/ibmvscsi_tgt/ibmvscsi_tgt.c
+--- linux-4.8.11-28.30nodeb/drivers/scsi/ibmvscsi_tgt/ibmvscsi_tgt.c	2016-12-11 21:51:04.905420270 +0000
++++ linux-4.8.11-31.33nodeb/drivers/scsi/ibmvscsi_tgt/ibmvscsi_tgt.c	2016-12-11 21:46:55.132418077 +0000
 @@ -22,7 +22,7 @@
   *
   ****************************************************************************/
@@ -12320,9 +12320,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/scsi/ibmvscsi_tgt/ibmvscsi_tgt.c linux
  };
  
  static struct vio_device_id ibmvscsis_device_table[] = {
-diff -uNr linux-4.8.11-28.30nodeb/drivers/scsi/ibmvscsi_tgt/ibmvscsi_tgt.h linux-4.8.11-29.31nodeb/drivers/scsi/ibmvscsi_tgt/ibmvscsi_tgt.h
+diff -uNr linux-4.8.11-28.30nodeb/drivers/scsi/ibmvscsi_tgt/ibmvscsi_tgt.h linux-4.8.11-31.33nodeb/drivers/scsi/ibmvscsi_tgt/ibmvscsi_tgt.h
 --- linux-4.8.11-28.30nodeb/drivers/scsi/ibmvscsi_tgt/ibmvscsi_tgt.h	2016-10-02 23:24:33.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/drivers/scsi/ibmvscsi_tgt/ibmvscsi_tgt.h	2016-12-07 17:32:00.234069066 +0000
++++ linux-4.8.11-31.33nodeb/drivers/scsi/ibmvscsi_tgt/ibmvscsi_tgt.h	2016-12-11 21:46:55.133418077 +0000
 @@ -204,8 +204,6 @@
  	struct list_head waiting_rsp;
  #define NO_QUEUE                    0x00
@@ -12349,9 +12349,9 @@ diff -uNr linux-4.8.11-28.30nodeb/drivers/scsi/ibmvscsi_tgt/ibmvscsi_tgt.h linux
  	struct device dev;
  	struct vio_dev *dma_dev;
  	struct srp_target target;
-diff -uNr linux-4.8.11-28.30nodeb/fs/mount.h linux-4.8.11-29.31nodeb/fs/mount.h
+diff -uNr linux-4.8.11-28.30nodeb/fs/mount.h linux-4.8.11-31.33nodeb/fs/mount.h
 --- linux-4.8.11-28.30nodeb/fs/mount.h	2016-10-02 23:24:33.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/fs/mount.h	2016-12-07 17:32:00.508069068 +0000
++++ linux-4.8.11-31.33nodeb/fs/mount.h	2016-12-11 21:46:55.427418080 +0000
 @@ -13,6 +13,8 @@
  	u64			seq;	/* Sequence number to prevent loops */
  	wait_queue_head_t poll;
@@ -12361,9 +12361,9 @@ diff -uNr linux-4.8.11-28.30nodeb/fs/mount.h linux-4.8.11-29.31nodeb/fs/mount.h
  };
  
  struct mnt_pcp {
-diff -uNr linux-4.8.11-28.30nodeb/fs/namespace.c linux-4.8.11-29.31nodeb/fs/namespace.c
---- linux-4.8.11-28.30nodeb/fs/namespace.c	2016-12-07 17:29:03.234067512 +0000
-+++ linux-4.8.11-29.31nodeb/fs/namespace.c	2016-12-07 17:32:00.511069068 +0000
+diff -uNr linux-4.8.11-28.30nodeb/fs/namespace.c linux-4.8.11-31.33nodeb/fs/namespace.c
+--- linux-4.8.11-28.30nodeb/fs/namespace.c	2016-12-11 21:51:05.146420272 +0000
++++ linux-4.8.11-31.33nodeb/fs/namespace.c	2016-12-11 21:46:55.432418080 +0000
 @@ -27,6 +27,9 @@
  #include "pnode.h"
  #include "internal.h"
@@ -12489,9 +12489,9 @@ diff -uNr linux-4.8.11-28.30nodeb/fs/namespace.c linux-4.8.11-29.31nodeb/fs/name
  		list_add(&mnt->mnt_list, &new_ns->list);
  	} else {
  		mntput(m);
-diff -uNr linux-4.8.11-28.30nodeb/fs/pnode.c linux-4.8.11-29.31nodeb/fs/pnode.c
+diff -uNr linux-4.8.11-28.30nodeb/fs/pnode.c linux-4.8.11-31.33nodeb/fs/pnode.c
 --- linux-4.8.11-28.30nodeb/fs/pnode.c	2016-10-02 23:24:33.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/fs/pnode.c	2016-12-07 17:32:00.522069068 +0000
++++ linux-4.8.11-31.33nodeb/fs/pnode.c	2016-12-11 21:46:55.443418080 +0000
 @@ -259,7 +259,7 @@
  		read_sequnlock_excl(&mount_lock);
  	}
@@ -12501,18 +12501,18 @@ diff -uNr linux-4.8.11-28.30nodeb/fs/pnode.c linux-4.8.11-29.31nodeb/fs/pnode.c
  }
  
  /*
-diff -uNr linux-4.8.11-28.30nodeb/fs/pnode.h linux-4.8.11-29.31nodeb/fs/pnode.h
+diff -uNr linux-4.8.11-28.30nodeb/fs/pnode.h linux-4.8.11-31.33nodeb/fs/pnode.h
 --- linux-4.8.11-28.30nodeb/fs/pnode.h	2016-10-02 23:24:33.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/fs/pnode.h	2016-12-07 17:32:00.522069068 +0000
++++ linux-4.8.11-31.33nodeb/fs/pnode.h	2016-12-11 21:46:55.443418080 +0000
 @@ -52,4 +52,5 @@
  struct mount *copy_tree(struct mount *, struct dentry *, int);
  bool is_path_reachable(struct mount *, struct dentry *,
  			 const struct path *root);
 +int count_mounts(struct mnt_namespace *ns, struct mount *mnt);
  #endif /* _LINUX_PNODE_H */
-diff -uNr linux-4.8.11-28.30nodeb/include/linux/mount.h linux-4.8.11-29.31nodeb/include/linux/mount.h
+diff -uNr linux-4.8.11-28.30nodeb/include/linux/mount.h linux-4.8.11-31.33nodeb/include/linux/mount.h
 --- linux-4.8.11-28.30nodeb/include/linux/mount.h	2016-10-02 23:24:33.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/include/linux/mount.h	2016-12-07 17:32:00.542069068 +0000
++++ linux-4.8.11-31.33nodeb/include/linux/mount.h	2016-12-11 21:46:55.468418080 +0000
 @@ -96,4 +96,6 @@
  
  extern dev_t name_to_dev_t(const char *name);
@@ -12520,9 +12520,9 @@ diff -uNr linux-4.8.11-28.30nodeb/include/linux/mount.h linux-4.8.11-29.31nodeb/
 +extern unsigned int sysctl_mount_max;
 +
  #endif /* _LINUX_MOUNT_H */
-diff -uNr linux-4.8.11-28.30nodeb/include/linux/netdevice.h linux-4.8.11-29.31nodeb/include/linux/netdevice.h
---- linux-4.8.11-28.30nodeb/include/linux/netdevice.h	2016-12-07 17:29:03.261067512 +0000
-+++ linux-4.8.11-29.31nodeb/include/linux/netdevice.h	2016-12-07 17:32:00.544069068 +0000
+diff -uNr linux-4.8.11-28.30nodeb/include/linux/netdevice.h linux-4.8.11-31.33nodeb/include/linux/netdevice.h
+--- linux-4.8.11-28.30nodeb/include/linux/netdevice.h	2016-12-11 21:51:05.173420273 +0000
++++ linux-4.8.11-31.33nodeb/include/linux/netdevice.h	2016-12-11 21:46:55.469418080 +0000
 @@ -2179,7 +2179,7 @@
  						struct sk_buff **head,
  						struct sk_buff *skb)
@@ -12563,9 +12563,9 @@ diff -uNr linux-4.8.11-28.30nodeb/include/linux/netdevice.h linux-4.8.11-29.31no
  	     ldev = netdev_all_lower_get_next_rcu(dev, &(iter)); \
  	     ldev; \
  	     ldev = netdev_all_lower_get_next_rcu(dev, &(iter)))
-diff -uNr linux-4.8.11-28.30nodeb/include/linux/nvme.h linux-4.8.11-29.31nodeb/include/linux/nvme.h
+diff -uNr linux-4.8.11-28.30nodeb/include/linux/nvme.h linux-4.8.11-31.33nodeb/include/linux/nvme.h
 --- linux-4.8.11-28.30nodeb/include/linux/nvme.h	2016-10-02 23:24:33.000000000 +0000
-+++ linux-4.8.11-29.31nodeb/include/linux/nvme.h	2016-12-07 17:32:00.544069068 +0000
++++ linux-4.8.11-31.33nodeb/include/linux/nvme.h	2016-12-11 21:46:55.470418080 +0000
 @@ -562,6 +562,9 @@
  	nvme_admin_format_nvm		= 0x80,
  	nvme_admin_security_send	= 0x81,
@@ -12615,9 +12615,9 @@ diff -uNr linux-4.8.11-28.30nodeb/include/linux/nvme.h linux-4.8.11-29.31nodeb/i
  
  	/*
  	 * I/O Command Set Specific - Fabrics commands:
-diff -uNr linux-4.8.11-28.30nodeb/kernel/sysctl.c linux-4.8.11-29.31nodeb/kernel/sysctl.c
---- linux-4.8.11-28.30nodeb/kernel/sysctl.c	2016-12-07 17:29:03.289067512 +0000
-+++ linux-4.8.11-29.31nodeb/kernel/sysctl.c	2016-12-07 17:32:00.574069069 +0000
+diff -uNr linux-4.8.11-28.30nodeb/kernel/sysctl.c linux-4.8.11-31.33nodeb/kernel/sysctl.c
+--- linux-4.8.11-28.30nodeb/kernel/sysctl.c	2016-12-11 21:51:05.199420273 +0000
++++ linux-4.8.11-31.33nodeb/kernel/sysctl.c	2016-12-11 21:46:55.503418081 +0000
 @@ -66,6 +66,7 @@
  #include <linux/kexec.h>
  #include <linux/bpf.h>
@@ -12641,18 +12641,18 @@ diff -uNr linux-4.8.11-28.30nodeb/kernel/sysctl.c linux-4.8.11-29.31nodeb/kernel
  	{ }
  };
  
-diff -uNr linux-4.8.11-28.30nodeb/net/core/flow_dissector.c linux-4.8.11-29.31nodeb/net/core/flow_dissector.c
---- linux-4.8.11-28.30nodeb/net/core/flow_dissector.c	2016-12-07 17:29:48.870067912 +0000
-+++ linux-4.8.11-29.31nodeb/net/core/flow_dissector.c	2016-12-07 17:32:00.605069069 +0000
+diff -uNr linux-4.8.11-28.30nodeb/net/core/flow_dissector.c linux-4.8.11-31.33nodeb/net/core/flow_dissector.c
+--- linux-4.8.11-28.30nodeb/net/core/flow_dissector.c	2016-12-11 21:52:07.107420816 +0000
++++ linux-4.8.11-31.33nodeb/net/core/flow_dissector.c	2016-12-11 21:46:55.534418081 +0000
 @@ -945,4 +945,4 @@
  	return 0;
  }
  
 -late_initcall_sync(init_default_flow_dissectors);
 +core_initcall(init_default_flow_dissectors);
-diff -uNr linux-4.8.11-28.30nodeb/net/ipv4/udp_offload.c linux-4.8.11-29.31nodeb/net/ipv4/udp_offload.c
---- linux-4.8.11-28.30nodeb/net/ipv4/udp_offload.c	2016-12-07 17:29:03.309067512 +0000
-+++ linux-4.8.11-29.31nodeb/net/ipv4/udp_offload.c	2016-12-07 17:32:00.622069069 +0000
+diff -uNr linux-4.8.11-28.30nodeb/net/ipv4/udp_offload.c linux-4.8.11-31.33nodeb/net/ipv4/udp_offload.c
+--- linux-4.8.11-28.30nodeb/net/ipv4/udp_offload.c	2016-12-11 21:51:05.219420273 +0000
++++ linux-4.8.11-31.33nodeb/net/ipv4/udp_offload.c	2016-12-11 21:46:55.553418081 +0000
 @@ -293,13 +293,7 @@
  
  	skb_gro_pull(skb, sizeof(struct udphdr)); /* pull encapsulating udp header */
@@ -12668,3 +12668,1312 @@ diff -uNr linux-4.8.11-28.30nodeb/net/ipv4/udp_offload.c linux-4.8.11-29.31nodeb
  
  out_unlock:
  	rcu_read_unlock();
+diff -uNr linux-4.8.11-28.30nodeb/net/packet/af_packet.c linux-4.8.11-31.33nodeb/net/packet/af_packet.c
+--- linux-4.8.11-28.30nodeb/net/packet/af_packet.c	2016-12-11 21:51:56.062420719 +0000
++++ linux-4.8.11-31.33nodeb/net/packet/af_packet.c	2016-12-11 21:46:55.564418081 +0000
+@@ -3648,19 +3648,25 @@
+ 
+ 		if (optlen != sizeof(val))
+ 			return -EINVAL;
+-		if (po->rx_ring.pg_vec || po->tx_ring.pg_vec)
+-			return -EBUSY;
+ 		if (copy_from_user(&val, optval, sizeof(val)))
+ 			return -EFAULT;
+ 		switch (val) {
+ 		case TPACKET_V1:
+ 		case TPACKET_V2:
+ 		case TPACKET_V3:
+-			po->tp_version = val;
+-			return 0;
++			break;
+ 		default:
+ 			return -EINVAL;
+ 		}
++		lock_sock(sk);
++		if (po->rx_ring.pg_vec || po->tx_ring.pg_vec) {
++			ret = -EBUSY;
++		} else {
++			po->tp_version = val;
++			ret = 0;
++		}
++		release_sock(sk);
++		return ret;
+ 	}
+ 	case PACKET_RESERVE:
+ 	{
+@@ -4164,6 +4170,7 @@
+ 	/* Added to avoid minimal code churn */
+ 	struct tpacket_req *req = &req_u->req;
+ 
++	lock_sock(sk);
+ 	/* Opening a Tx-ring is NOT supported in TPACKET_V3 */
+ 	if (!closing && tx_ring && (po->tp_version > TPACKET_V2)) {
+ 		net_warn_ratelimited("Tx-ring is not supported.\n");
+@@ -4245,7 +4252,6 @@
+ 			goto out;
+ 	}
+ 
+-	lock_sock(sk);
+ 
+ 	/* Detach socket from network */
+ 	spin_lock(&po->bind_lock);
+@@ -4294,11 +4300,11 @@
+ 		if (!tx_ring)
+ 			prb_shutdown_retire_blk_timer(po, rb_queue);
+ 	}
+-	release_sock(sk);
+ 
+ 	if (pg_vec)
+ 		free_pg_vec(pg_vec, order, req->tp_block_nr);
+ out:
++	release_sock(sk);
+ 	return err;
+ }
+ 
+diff -uNr linux-4.8.11-28.30nodeb/ubuntu/hio/hio.c linux-4.8.11-31.33nodeb/ubuntu/hio/hio.c
+--- linux-4.8.11-28.30nodeb/ubuntu/hio/hio.c	2016-12-11 21:51:05.475420275 +0000
++++ linux-4.8.11-31.33nodeb/ubuntu/hio/hio.c	2016-12-11 21:46:55.863418084 +0000
+@@ -60,14 +60,10 @@
+ #if (LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,17))
+ #include <linux/devfs_fs_kernel.h>
+ #endif
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,3,0))
+-#define bio_endio(bio, errors)	\
+-	do { bio->bi_error = errors; bio_endio(bio); } while (0)
+-#endif
+ 
+ /* driver */
+ #define MODULE_NAME		"hio"
+-#define DRIVER_VERSION	"2.1.0.23"
++#define DRIVER_VERSION	"2.1.0.28"
+ #define DRIVER_VERSION_LEN	16
+ 
+ #define SSD_FW_MIN		0x1
+@@ -1402,6 +1398,7 @@
+ 
+ 	/* debug info */
+ 	struct ssd_debug_info db_info;
++	uint64_t reset_time;
+ } ssd_device_t;
+ 
+ 
+@@ -1732,6 +1729,8 @@
+ #define SSD_CMD_DEBUG				_IOW('H', 250, struct ssd_debug_info)
+ #define SSD_CMD_DRV_PARAM_INFO		_IOR('H', 251, struct ssd_drv_param_info)
+ 
++#define SSD_CMD_CLEAR_WARNING		_IOW('H', 260, int)
++
+ 
+ /* log */
+ #define SSD_LOG_MAX_SZ				4096
+@@ -1883,8 +1882,8 @@
+ 	{0x8c, SSD_LOG_LEVEL_WARNING, SSD_LOG_DATA_NONE, 0, 0, "Warning: P/E cycles close to limit"}, 
+ 	{0x8d, SSD_LOG_LEVEL_ERR,     SSD_LOG_DATA_NONE, 0, 0, "Error: P/E cycles over limit"}, 
+ 
+-	{0x90, SSD_LOG_LEVEL_NOTICE,  SSD_LOG_DATA_NONE, 0, 0, "Over temperature"}, //xx
+-	{0x91, SSD_LOG_LEVEL_NOTICE,  SSD_LOG_DATA_NONE, 0, 0, "Temperature is OK"}, //xx
++	{0x90, SSD_LOG_LEVEL_NOTICE,  SSD_LOG_DATA_NONE, 0, 0, "Warning: Over temperature"}, //90
++	{0x91, SSD_LOG_LEVEL_NOTICE,  SSD_LOG_DATA_NONE, 0, 0, "Info: Temperature is OK"}, //80
+ 	{0x92, SSD_LOG_LEVEL_WARNING, SSD_LOG_DATA_NONE, 0, 0, "Battery fault"}, 
+ 	{0x93, SSD_LOG_LEVEL_WARNING, SSD_LOG_DATA_NONE, 0, 0, "SEU fault"}, //err
+ 	{0x94, SSD_LOG_LEVEL_ERR,     SSD_LOG_DATA_NONE, 0, 0, "DDR error"}, //err
+@@ -1893,7 +1892,7 @@
+ 	{0x97, SSD_LOG_LEVEL_ERR,     SSD_LOG_DATA_NONE, 0, 0, "Bridge serdes 2 error"}, //err
+ 	{0x98, SSD_LOG_LEVEL_NOTICE,  SSD_LOG_DATA_NONE, 0, 0, "SEU fault (corrected)"}, //err
+ 	{0x99, SSD_LOG_LEVEL_NOTICE,  SSD_LOG_DATA_NONE, 0, 0, "Battery is OK"}, 
+-	{0x9a, SSD_LOG_LEVEL_NOTICE,  SSD_LOG_DATA_NONE, 0, 0, "Temperature close to limit"}, //xx
++	{0x9a, SSD_LOG_LEVEL_NOTICE,  SSD_LOG_DATA_NONE, 0, 0, "Info: Temperature close to limit"}, //85
+ 	
+ 	{0x9b, SSD_LOG_LEVEL_NOTICE,  SSD_LOG_DATA_HEX,  0, 0, "SEU fault address (low)"}, 
+ 	{0x9c, SSD_LOG_LEVEL_NOTICE,  SSD_LOG_DATA_HEX,  0, 0, "SEU fault address (high)"}, 
+@@ -1914,8 +1913,8 @@
+ 	{0xaa, SSD_LOG_LEVEL_NOTICE,  SSD_LOG_DATA_LOC,  0, 0, "Flash init failure"}, 
+ 	{0xab, SSD_LOG_LEVEL_NOTICE,  SSD_LOG_DATA_LOC,  1, 1, "Mapping table recovery failure"}, 
+ 	{0xac, SSD_LOG_LEVEL_NOTICE,  SSD_LOG_DATA_LOC,  1, 1, "RAID recovery: ECC failed"}, 
+-	{0xb0, SSD_LOG_LEVEL_NOTICE,  SSD_LOG_DATA_NONE, 0, 0, "Temperature is up to degree 95"},
+-	{0xb1, SSD_LOG_LEVEL_NOTICE,  SSD_LOG_DATA_NONE, 0, 0, "Temperature is up to degree 100"},
++	{0xb0, SSD_LOG_LEVEL_NOTICE,  SSD_LOG_DATA_NONE, 0, 0, "Warning: Temperature is 95 degrees centigrade"},
++	{0xb1, SSD_LOG_LEVEL_NOTICE,  SSD_LOG_DATA_NONE, 0, 0, "Warning: Temperature is 100 degrees centigrade"},
+ 
+ 	{0x300, SSD_LOG_LEVEL_ERR,    SSD_LOG_DATA_HEX,  0, 0, "CMD timeout"}, 
+ 	{0x301, SSD_LOG_LEVEL_NOTICE, SSD_LOG_DATA_HEX,  0, 0, "Power on"}, 
+@@ -1939,10 +1938,10 @@
+ 	{0x313, SSD_LOG_LEVEL_WARNING,SSD_LOG_DATA_NONE, 0, 0, "CAP: learn fault"}, 
+ 	{0x314, SSD_LOG_LEVEL_NOTICE, SSD_LOG_DATA_HEX,  0, 0, "CAP status"}, 
+ 	{0x315, SSD_LOG_LEVEL_NOTICE, SSD_LOG_DATA_HEX,  0, 0, "Board voltage fault status"}, 
+-	{0x316, SSD_LOG_LEVEL_NOTICE, SSD_LOG_DATA_NONE, 0, 0, "Inlet over temperature"}, 
+-	{0x317, SSD_LOG_LEVEL_NOTICE, SSD_LOG_DATA_NONE, 0, 0, "Inlet temperature is OK"}, 
+-	{0x318, SSD_LOG_LEVEL_NOTICE, SSD_LOG_DATA_NONE, 0, 0, "Flash over temperature"}, 
+-	{0x319, SSD_LOG_LEVEL_NOTICE, SSD_LOG_DATA_NONE, 0, 0, "Flash temperature is OK"}, 
++	{0x316, SSD_LOG_LEVEL_NOTICE, SSD_LOG_DATA_NONE, 0, 0, "Info: Inlet temperature is 55 degrees centigrade"}, //55
++	{0x317, SSD_LOG_LEVEL_NOTICE, SSD_LOG_DATA_NONE, 0, 0, "Info: Inlet temperature is 50 degrees centigrade"}, //50
++	{0x318, SSD_LOG_LEVEL_NOTICE, SSD_LOG_DATA_NONE, 0, 0, "Info: Flash over temperature"}, //70
++	{0x319, SSD_LOG_LEVEL_NOTICE, SSD_LOG_DATA_NONE, 0, 0, "Info: Flash temperature is OK"}, //65
+ 	{0x31a, SSD_LOG_LEVEL_WARNING,SSD_LOG_DATA_NONE, 0, 0, "CAP: short circuit"}, 
+ 	{0x31b, SSD_LOG_LEVEL_WARNING,SSD_LOG_DATA_HEX,  0, 0, "Sensor fault"}, 
+ 	{0x31c, SSD_LOG_LEVEL_NOTICE, SSD_LOG_DATA_NONE, 0, 0, "Erase all data"}, 
+@@ -2081,6 +2080,53 @@
+ MODULE_PARM_DESC(wmode, "write mode, 0 - write buffer (with risk for the 6xx firmware), 1 - write buffer ex, 2 - write through, 3 - auto, 4 - default");
+ MODULE_PARM_DESC(finject, "enable fault simulation, 0 - off, 1 - on, for debug purpose only");
+ 
++// API adaption layer
++static inline void ssd_bio_endio(struct bio *bio, int error)
++{
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0))
++	bio->bi_error = error;
++	bio_endio(bio);
++#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24))
++	bio_endio(bio, error);
++#else
++	bio_endio(bio, bio->bi_size, error);
++#endif
++}
++
++static inline int ssd_bio_has_discard(struct bio *bio)
++{
++#ifndef SSD_TRIM
++	return 0;
++#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
++	return bio_op(bio) & REQ_OP_DISCARD;
++#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,36))
++	return bio->bi_rw & REQ_DISCARD;
++#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,32))
++	return bio_rw_flagged(bio, BIO_RW_DISCARD);
++#else
++	return 0;
++#endif
++}
++
++static inline int ssd_bio_has_flush(struct bio *bio)
++{
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
++	return bio_op(bio) & REQ_OP_FLUSH;
++#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,37))
++	return bio->bi_rw & REQ_FLUSH;
++#else
++	return 0;
++#endif
++}
++
++static inline int ssd_bio_has_fua(struct bio *bio)
++{
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
++	return bio->bi_opf & REQ_FUA;
++#else
++	return bio->bi_rw & REQ_FUA;
++#endif
++}
+ 
+ #ifndef MODULE
+ static int __init ssd_drv_mode(char *str)
+@@ -2171,7 +2217,7 @@
+ 	int len = 0;
+ 	//char type; //xx
+ 
+-	if (ssd_exiting) {
++	if (ssd_exiting || off != 0) {
+ 		return 0;
+ 	}
+ 
+@@ -2200,6 +2246,7 @@
+ 		len += snprintf((page + len), (count - len), "HIO %d            Device:\t%s\n", idx, dev->name);
+ 	}
+ 
++	*eof = 1;
+ 	return len;
+ }
+ 
+@@ -3696,7 +3743,8 @@
+ 	uint32_t volt;
+ 	uint16_t val = 0, status;
+ 	uint8_t alarm1 = 0, alarm2 = 0;
+-	int i;
++	uint32_t low, high;
++	int i,j=0;
+ 	int ret = 0;
+ 
+ 	/* read interrupt status to clear interrupt */
+@@ -3736,12 +3784,27 @@
+ 			continue;
+ 		}
+ 
+-		ret = ssd_smbus_read_word(dev, saddr, SSD_LM80_REG_IN(i), (uint8_t *)&val);
+-		if (ret) {
+-			goto out;
++		high = (uint32_t)ssd_lm80_limit[i].high * (uint32_t)10;
++		low = (uint32_t)ssd_lm80_limit[i].low * (uint32_t)10;
++		
++		for (j=0; j<3; j++) {
++			ret = ssd_smbus_read_word(dev, saddr, SSD_LM80_REG_IN(i), (uint8_t *)&val);
++			if (ret) {
++				goto out;
++			}
++			volt = SSD_LM80_CONVERT_VOLT(u16_swap(val));
++			if ((volt>high) || (volt<=low)) {
++				if(j<2) {
++					msleep(SSD_LM80_CONV_INTERVAL);
++				}
++			} else {
++				break;
++			}
+ 		}
+ 
+-		volt = SSD_LM80_CONVERT_VOLT(u16_swap(val));
++		if (j<3) {
++			continue;
++		}
+ 
+ 		switch (i) {
+ 			case SSD_LM80_IN_CAP: {
+@@ -4136,44 +4199,19 @@
+ 	int tag = cmd->tag;
+ 
+ 	if (bio) {
+-#if (defined SSD_TRIM && (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,36)))
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
+-		if (!(bio_op(bio) & REQ_OP_DISCARD)) {
+-#else
+-		if (!(bio->bi_rw & REQ_DISCARD)) {
+-#endif
++		if (!ssd_bio_has_discard(bio)) {
+ 			ssd_end_io_acct(cmd);
+ 			if (!cmd->flag) {
+ 				pci_unmap_sg(dev->pdev, cmd->sgl, cmd->nsegs, 
+ 					bio_data_dir(bio) == READ ? PCI_DMA_FROMDEVICE : PCI_DMA_TODEVICE);
+ 			}
+ 		}
+-#elif (defined SSD_TRIM && (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,32)))
+-		if (!bio_rw_flagged(bio, BIO_RW_DISCARD)) {
+-			ssd_end_io_acct(cmd);
+-			if (!cmd->flag) {
+-				pci_unmap_sg(dev->pdev, cmd->sgl, cmd->nsegs, 
+-					bio_data_dir(bio) == READ ? PCI_DMA_FROMDEVICE : PCI_DMA_TODEVICE);
+-			}
+-		}
+-#else
+-		ssd_end_io_acct(cmd);
+-
+-		if (!cmd->flag) {
+-			pci_unmap_sg(dev->pdev, cmd->sgl, cmd->nsegs, 
+-				bio_data_dir(bio) == READ ? PCI_DMA_FROMDEVICE : PCI_DMA_TODEVICE);
+-		}
+-#endif
+ 
+ 		cmd->bio = NULL;
+ 		ssd_put_tag(dev, tag);
+ 
+ 		if (SSD_INT_MSIX == dev->int_mode || tag < 16 || errors) {
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24))
+-			bio_endio(bio, errors);
+-#else
+-			bio_endio(bio, bio->bi_size, errors);
+-#endif
++			ssd_bio_endio(bio, errors);
+ 		} else /* if (bio->bi_idx >= bio->bi_vcnt)*/ {
+ 			spin_lock(&dev->doneq_lock);
+ 			ssd_blist_add(&dev->doneq, bio);
+@@ -4559,39 +4597,7 @@
+ 
+ 	msg = (struct ssd_rw_msg *)cmd->msg;
+ 
+-#if (defined SSD_TRIM && (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,36)))
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
+-	if (bio_op(bio) & REQ_OP_DISCARD) {
+-#else
+-	if (bio->bi_rw & REQ_DISCARD) {
+-#endif
+-		unsigned int length = bio_sectors(bio);
+-
+-		//printk(KERN_WARNING "%s: discard len %u, block %llu\n", dev->name, bio_sectors(bio), block);
+-		msg->tag = tag;
+-		msg->fun = SSD_FUNC_TRIM;
+-
+-		sge = msg->sge;
+-		for (i=0; i<(dev->hw_info.cmd_max_sg); i++) {
+-			sge->block = block;
+-			sge->length = (length >= dev->hw_info.sg_max_sec) ? dev->hw_info.sg_max_sec : length;
+-			sge->buf = 0;
+-
+-			block += sge->length;
+-			length -= sge->length;
+-			sge++;
+-
+-			if (length <= 0) {
+-				break;
+-			}
+-		}
+-		msg->nsegs = cmd->nsegs = (i + 1);
+-
+-		dev->scmd(cmd);
+-		return 0;
+-	}
+-#elif (defined SSD_TRIM && (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,32)))
+-	if (bio_rw_flagged(bio, BIO_RW_DISCARD)) {
++	if (ssd_bio_has_discard(bio)) {
+ 		unsigned int length = bio_sectors(bio);
+ 
+ 		//printk(KERN_WARNING "%s: discard len %u, block %llu\n", dev->name, bio_sectors(bio), block);
+@@ -4609,15 +4615,15 @@
+ 			sge++;
+ 
+ 			if (length <= 0) {
++				++i;
+ 				break;
+ 			}
+ 		}
+-		msg->nsegs = cmd->nsegs = (i + 1);
++		msg->nsegs = cmd->nsegs = i;
+ 
+ 		dev->scmd(cmd);
+ 		return 0;
+ 	}
+-#endif
+ 
+ 	//msg->nsegs = cmd->nsegs = ssd_bio_map_sg(dev, bio, sgl);
+ 	msg->nsegs = cmd->nsegs = bio->bi_vcnt;
+@@ -4678,39 +4684,7 @@
+ 
+ 	sgl = cmd->sgl;
+ 
+-#if (defined SSD_TRIM && (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,36)))
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
+-	if (bio_op(bio) & REQ_OP_DISCARD) {
+-#else
+-	if (bio->bi_rw & REQ_DISCARD) {
+-#endif
+-		unsigned int length = bio_sectors(bio);
+-
+-		//printk(KERN_WARNING "%s: discard len %u, block %llu\n", dev->name, bio_sectors(bio), block);
+-		msg->tag = tag;
+-		msg->fun = SSD_FUNC_TRIM;
+-
+-		sge = msg->sge;
+-		for (i=0; i<(dev->hw_info.cmd_max_sg); i++) {
+-			sge->block = block;
+-			sge->length = (length >= dev->hw_info.sg_max_sec) ? dev->hw_info.sg_max_sec : length;
+-			sge->buf = 0;
+-
+-			block += sge->length;
+-			length -= sge->length;
+-			sge++;
+-
+-			if (length <= 0) {
+-				break;
+-			}
+-		}
+-		msg->nsegs = cmd->nsegs = (i + 1);
+-
+-		dev->scmd(cmd);
+-		return 0;
+-	}
+-#elif (defined SSD_TRIM && (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,32)))
+-	if (bio_rw_flagged(bio, BIO_RW_DISCARD)) {
++	if (ssd_bio_has_discard(bio)) {
+ 		unsigned int length = bio_sectors(bio);
+ 
+ 		//printk(KERN_WARNING "%s: discard len %u, block %llu\n", dev->name, bio_sectors(bio), block);
+@@ -4728,15 +4702,15 @@
+ 			sge++;
+ 
+ 			if (length <= 0) {
++				++i;
+ 				break;
+ 			}
+ 		}
+-		msg->nsegs = cmd->nsegs = (i + 1);
++		msg->nsegs = cmd->nsegs = i;
+ 
+ 		dev->scmd(cmd);
+ 		return 0;
+ 	}
+-#endif
+ 
+ 	msg->nsegs = cmd->nsegs = ssd_bio_map_sg(dev, bio, sgl);
+ 
+@@ -4788,6 +4762,7 @@
+ 	}
+ 	dev = data;
+ 
++	current->flags |= PF_NOFREEZE;
+ 	//set_user_nice(current, -5);
+ 
+ 	while (!kthread_should_stop()) {
+@@ -4807,11 +4782,7 @@
+ 			while (bio) {
+ 				next = bio->bi_next;
+ 				bio->bi_next = NULL;
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24))
+-				bio_endio(bio, 0);
+-#else
+-				bio_endio(bio, bio->bi_size, 0);
+-#endif
++				ssd_bio_endio(bio, 0);
+ 				atomic_dec(&dev->in_doneq);
+ 				bio = next;
+ 			}
+@@ -4822,11 +4793,12 @@
+ 			if (unlikely(smp_processor_id() == dev->irq_cpu)) {
+ #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,28))
+ 				cpumask_var_t new_mask;
+-				alloc_cpumask_var(&new_mask, GFP_ATOMIC);
+-				cpumask_setall(new_mask);
+-				cpumask_clear_cpu(dev->irq_cpu, new_mask);
+-				set_cpus_allowed_ptr(current, new_mask);
+-				free_cpumask_var(new_mask);
++				if (alloc_cpumask_var(&new_mask, GFP_ATOMIC)) {
++					cpumask_setall(new_mask);
++					cpumask_clear_cpu(dev->irq_cpu, new_mask);
++					set_cpus_allowed_ptr(current, new_mask);
++					free_cpumask_var(new_mask);
++				}
+ #else
+ 				cpumask_t new_mask;
+ 				cpus_setall(new_mask);
+@@ -4851,6 +4823,7 @@
+ 	}
+ 	dev = data;
+ 
++	current->flags |= PF_NOFREEZE;
+ 	//set_user_nice(current, -5);
+ 
+ 	while (!kthread_should_stop()) {
+@@ -4883,11 +4856,12 @@
+ 			if (unlikely(smp_processor_id() == dev->irq_cpu)) {
+ #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,28))
+ 				cpumask_var_t new_mask;
+-				alloc_cpumask_var(&new_mask, GFP_ATOMIC);
+-				cpumask_setall(new_mask);
+-				cpumask_clear_cpu(dev->irq_cpu, new_mask);
+-				set_cpus_allowed_ptr(current, new_mask);
+-				free_cpumask_var(new_mask);
++				if (alloc_cpumask_var(&new_mask, GFP_ATOMIC)) {
++					cpumask_setall(new_mask);
++					cpumask_clear_cpu(dev->irq_cpu, new_mask);
++					set_cpus_allowed_ptr(current, new_mask);
++					free_cpumask_var(new_mask);
++				}
+ #else
+ 				cpumask_t new_mask;
+ 				cpus_setall(new_mask);
+@@ -5735,6 +5709,7 @@
+ 
+ 	if (dev->internal_log.log) {
+ 		vfree(dev->internal_log.log);
++		dev->internal_log.nr_log = 0;
+ 		dev->internal_log.log = NULL;
+ 	}
+ }
+@@ -5757,6 +5732,7 @@
+ 	off = dev->rom_info.log_base;
+ 	size = dev->rom_info.log_sz;
+ 
++	dev->internal_log.nr_log = 0;
+ 	dev->internal_log.log = vmalloc(size);
+ 	if (!dev->internal_log.log) {
+ 		ret = -ENOMEM;
+@@ -6063,6 +6039,69 @@
+ 	return ret;
+ }
+ 
++static int ssd_clear_warning(struct ssd_device *dev)
++{
++	uint32_t off, size;
++	int i, ret = 0;
++
++	if (dev->protocol_info.ver <= SSD_PROTOCOL_V3) {
++		return 0;
++	}
++
++	/* clear log_info warning */
++	memset(&dev->smart.log_info, 0, sizeof(dev->smart.log_info));
++
++	/* clear io_stat warning */
++	dev->smart.io_stat.nr_to = 0;
++	dev->smart.io_stat.nr_rwerr = 0;
++	dev->smart.io_stat.nr_ioerr = 0;
++
++	/* clear ecc_info warning */
++	memset(&dev->smart.ecc_info, 0, sizeof(dev->smart.ecc_info));
++
++	/* clear queued warnings */
++	for (i=0; i<dev->nr_queue; i++) {
++		/* queued io_stat warning */
++		dev->queue[i].io_stat.nr_to = 0;
++		dev->queue[i].io_stat.nr_rwerr = 0;
++		dev->queue[i].io_stat.nr_ioerr = 0;
++
++		/* queued ecc_info warning */
++		memset(&(dev->queue[i].ecc_info), 0, sizeof(dev->queue[i].ecc_info));
++	}
++
++	/* write smart back to nor */
++	for (i = 0; i < dev->rom_info.nr_smart; i++) {
++		off = dev->rom_info.smart_base + (dev->rom_info.smart_sz * i);
++		size = dev->rom_info.smart_sz;
++
++		ret = ssd_spi_erase(dev, off, size);
++		if (ret) {
++			hio_warn("%s: warning erase: failed with code 1\n", dev->name);
++			goto out;
++		}
++
++		size = sizeof(struct ssd_smart);
++
++		ret = ssd_spi_write(dev, &dev->smart, off, size);
++		if (ret) {
++			hio_warn("%s: warning erase: failed with code 2\n", dev->name);
++			goto out;
++		}
++	}
++
++	dev->smart.version++;
++
++	/* clear cmd timeout warning */
++	atomic_set(&dev->tocnt, 0);
++
++	/* clear tmp log info */
++	memset(&dev->log_info, 0, sizeof(dev->log_info));
++
++out:
++	return ret;
++}
++
+ static int ssd_save_smart(struct ssd_device *dev)
+ {
+ 	uint32_t off, size;
+@@ -7724,6 +7763,7 @@
+ /* reset flash controller etc */
+ static int __ssd_reset(struct ssd_device *dev, int type)
+ {
++	struct timeval tv;
+ 	if (type < SSD_RST_NOINIT || type > SSD_RST_FULL) {
+ 		return -EINVAL;
+ 	}
+@@ -7757,6 +7797,8 @@
+ 
+ 	mutex_unlock(&dev->fw_mutex);
+ 	ssd_gen_swlog(dev, SSD_LOG_RESET, (uint32_t)type);
++	do_gettimeofday(&tv);
++	dev->reset_time = tv.tv_sec;
+ 
+ 	return __ssd_check_init_state(dev);
+ }
+@@ -8163,75 +8205,43 @@
+ #endif
+ 
+ 	if (!test_bit(SSD_ONLINE, &dev->state)) {
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24))
+-		bio_endio(bio, -ENODEV);
+-#else
+-		bio_endio(bio, bio->bi_size, -ENODEV);
+-#endif
++		ssd_bio_endio(bio, -ENODEV);
+ 		goto out;
+ 	}
+ 
+ #ifdef SSD_DEBUG_ERR
+ 	if (atomic_read(&dev->tocnt)) {
+ 		hio_warn("%s: IO rejected because of IO timeout!\n", dev->name);
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24))
+-		bio_endio(bio, -EIO);
+-#else
+-		bio_endio(bio, bio->bi_size, -EIO);
+-#endif
++		ssd_bio_endio(bio, -EIO);
+ 		goto out;
+ 	}
+ #endif
+ 
+ #if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,32))
+ 	if (unlikely(bio_barrier(bio))) {
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24))
+-		bio_endio(bio, -EOPNOTSUPP);
+-#else
+-		bio_endio(bio, bio->bi_size, -EOPNOTSUPP);
+-#endif
++		ssd_bio_endio(bio, -EOPNOTSUPP);
+ 		goto out;
+ 	}
+ #elif (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,36))
+ 	if (unlikely(bio_rw_flagged(bio, BIO_RW_BARRIER))) {
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24))
+-		bio_endio(bio, -EOPNOTSUPP);
+-#else
+-		bio_endio(bio, bio->bi_size, -EOPNOTSUPP);
+-#endif
++		ssd_bio_endio(bio, -EOPNOTSUPP);
+ 		goto out;
+ 	}
+ #elif (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37))
+ 	if (unlikely(bio->bi_rw & REQ_HARDBARRIER)) {
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24))
+-		bio_endio(bio, -EOPNOTSUPP);
+-#else
+-		bio_endio(bio, bio->bi_size, -EOPNOTSUPP);
+-#endif
++		ssd_bio_endio(bio, -EOPNOTSUPP);
+ 		goto out;
+ 	}
+ #else
+ 	//xx
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
+-	if (unlikely(bio->bi_opf & REQ_FUA)) {
+-#else
+-	if (unlikely(bio->bi_rw & REQ_FUA)) {
+-#endif
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24))
+-		bio_endio(bio, -EOPNOTSUPP);
+-#else
+-		bio_endio(bio, bio->bi_size, -EOPNOTSUPP);
+-#endif
++	if (unlikely(ssd_bio_has_fua(bio))) {
++		ssd_bio_endio(bio, -EOPNOTSUPP);
+ 		goto out;
+ 	}
+ #endif
+ 
+ 	 if (unlikely(dev->readonly && bio_data_dir(bio) == WRITE)) {
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24))
+-		bio_endio(bio, -EROFS);
+-#else
+-		bio_endio(bio, bio->bi_size, -EROFS);
+-#endif
++		ssd_bio_endio(bio, -EROFS);
+ 		goto out;
+ 	}
+ 
+@@ -8264,84 +8274,52 @@
+ 	int ret = -EBUSY;
+ 
+ 	if (!test_bit(SSD_ONLINE, &dev->state)) {
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24))
+-		bio_endio(bio, -ENODEV);
+-#else
+-		bio_endio(bio, bio->bi_size, -ENODEV);
+-#endif
++		ssd_bio_endio(bio, -ENODEV);
+ 		goto out;
+ 	}
+ 
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,3,0))
++	blk_queue_split(q, &bio, q->bio_split);
++#endif
++
+ #ifdef SSD_DEBUG_ERR
+ 	if (atomic_read(&dev->tocnt)) {
+ 		hio_warn("%s: IO rejected because of IO timeout!\n", dev->name);
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24))
+-		bio_endio(bio, -EIO);
+-#else
+-		bio_endio(bio, bio->bi_size, -EIO);
+-#endif
++		ssd_bio_endio(bio, -EIO);
+ 		goto out;
+ 	}
+ #endif
+ 
+ #if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,32))
+ 	if (unlikely(bio_barrier(bio))) {
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24))
+-		bio_endio(bio, -EOPNOTSUPP);
+-#else
+-		bio_endio(bio, bio->bi_size, -EOPNOTSUPP);
+-#endif
++		ssd_bio_endio(bio, -EOPNOTSUPP);
+ 		goto out;
+ 	}
+ #elif (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,36))
+ 	if (unlikely(bio_rw_flagged(bio, BIO_RW_BARRIER))) {
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24))
+-		bio_endio(bio, -EOPNOTSUPP);
+-#else
+-		bio_endio(bio, bio->bi_size, -EOPNOTSUPP);
+-#endif
++		ssd_bio_endio(bio, -EOPNOTSUPP);
+ 		goto out;
+ 	}
+ #elif (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37))
+ 	if (unlikely(bio->bi_rw & REQ_HARDBARRIER)) {
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24))
+-		bio_endio(bio, -EOPNOTSUPP);
+-#else
+-		bio_endio(bio, bio->bi_size, -EOPNOTSUPP);
+-#endif
++		ssd_bio_endio(bio, -EOPNOTSUPP);
+ 		goto out;
+ 	}
+ #else
+ 	//xx
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
+-	if (unlikely(bio->bi_opf & REQ_FUA)) {
+-#else
+-	if (unlikely(bio->bi_rw & REQ_FUA)) {
+-#endif
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24))
+-		bio_endio(bio, -EOPNOTSUPP);
+-#else
+-		bio_endio(bio, bio->bi_size, -EOPNOTSUPP);
+-#endif
++	if (unlikely(ssd_bio_has_fua(bio))) {
++		ssd_bio_endio(bio, -EOPNOTSUPP);
+ 		goto out;
+ 	}
+ 
+ 	/* writeback_cache_control.txt: REQ_FLUSH requests without data can be completed successfully without doing any work */
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
+-	if (unlikely((bio_op(bio) & REQ_OP_FLUSH) && !bio_sectors(bio))) {
+-#else
+-	if (unlikely((bio->bi_rw & REQ_FLUSH) && !bio_sectors(bio))) {
+-#endif
+-		bio_endio(bio, 0);
++	if (unlikely(ssd_bio_has_flush(bio) && !bio_sectors(bio))) {
++		ssd_bio_endio(bio, 0);
+ 		goto out;
+ 	}
+ 
+ #endif
+ 
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,3,0))
+-	blk_queue_split(q, &bio, q->bio_split);
+-#endif
+-
+ 	if (0 == atomic_read(&dev->in_sendq)) {
+ 		ret = ssd_submit_bio(dev, bio, 0);
+ 	}
+@@ -8381,6 +8359,8 @@
+ }
+ #endif
+ 
++static int ssd_init_queue(struct ssd_device *dev);
++static void ssd_cleanup_queue(struct ssd_device *dev);
+ static void ssd_cleanup_blkdev(struct ssd_device *dev);
+ static int ssd_init_blkdev(struct ssd_device *dev);
+ static int ssd_ioctl_common(struct ssd_device *dev, unsigned int cmd, unsigned long arg)
+@@ -9531,6 +9511,7 @@
+ 			if (test_and_clear_bit(SSD_INIT_BD, &dev->state)) {
+ 				mutex_lock(&dev->gd_mutex);
+ 				ssd_cleanup_blkdev(dev);
++				ssd_cleanup_queue(dev);
+ 				mutex_unlock(&dev->gd_mutex);
+ 			}
+ 
+@@ -9550,6 +9531,11 @@
+ 				break;
+ 			}
+ 
++			ret = ssd_init_queue(dev);
++			if (ret) {
++				hio_warn("%s: init queue failed\n", dev->name);
++				break;
++			}
+ 			ret = ssd_init_blkdev(dev);
+ 			if (ret) {
+ 				hio_warn("%s: register block device: failed\n", dev->name);
+@@ -9700,6 +9686,11 @@
+ 			break;
+ 		}
+ 
++		case SSD_CMD_CLEAR_WARNING: {
++			ret = ssd_clear_warning(dev);
++			break;
++		}
++
+ 		case SSD_CMD_SW_LOG: {
+ 			struct ssd_sw_log_info sw_log;
+ 
+@@ -10258,17 +10249,16 @@
+ 	dev->gd->fops = &ssd_fops;
+ 	dev->gd->queue = dev->rq;
+ 	dev->gd->private_data = dev;
+-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4,8,0))
+-	dev->gd->driverfs_dev = &dev->pdev->dev;
+-#endif
++
+ 	snprintf (dev->gd->disk_name, sizeof(dev->gd->disk_name), "%s", dev->name);
+ 
+ 	set_capacity(dev->gd, dev->hw_info.size >> 9);
+ 
+-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4,8,0))
+-	add_disk(dev->gd);
+-#else
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
+ 	device_add_disk(&dev->pdev->dev, dev->gd);
++#else
++	dev->gd->driverfs_dev = &dev->pdev->dev;
++	add_disk(dev->gd);
+ #endif
+ 
+ 	return 0;
+@@ -10350,6 +10340,23 @@
+ 	return 0;
+ }
+ 
++static int ssd_reload_ssd_ptr(struct ssd_device *dev)
++{
++	ssd_reset_resp_ptr(dev);
++
++	//update base reg address
++	if (dev->protocol_info.ver >= SSD_PROTOCOL_V3)  {
++
++		ssd_reg_write(dev->ctrlp + SSD_MSG_BASE_REG, dev->msg_base_dma);
++	}
++
++	//update response base reg address
++	ssd_reg_write(dev->ctrlp + SSD_RESP_FIFO_REG, dev->resp_msg_base_dma);
++	ssd_reg_write(dev->ctrlp + SSD_RESP_PTR_REG, dev->resp_ptr_base_dma);
++
++	return 0;
++}
++
+ static struct file_operations ssd_cfops = {
+ 	.owner		= THIS_MODULE, 
+ 	.open		= ssd_open, 
+@@ -11432,7 +11439,7 @@
+ static int ssd_init_irq(struct ssd_device *dev)
+ {
+ #if (!defined MODULE) && (defined SSD_MSIX_AFFINITY_FORCE)
+-	const struct cpumask *cpu_mask;
++	const struct cpumask *cpu_mask = NULL;
+ 	static int cpu_affinity = 0;
+ #endif
+ #if ((LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,35)) || (defined RHEL_MAJOR && RHEL_MAJOR == 6))
+@@ -11890,6 +11897,7 @@
+ 	const struct pci_device_id *ent)
+ {
+ 	struct ssd_device *dev;
++	struct timeval tv;
+ 	int ret = 0;
+ 
+ 	if (!pdev || !ent) {
+@@ -11929,6 +11937,9 @@
+ 		dev->cmajor = 0;
+ 	}
+ 
++	do_gettimeofday(&tv);
++	dev->reset_time = tv.tv_sec;
++
+ 	atomic_set(&(dev->refcnt), 0);
+ 	atomic_set(&(dev->tocnt), 0);
+ 
+@@ -12294,9 +12305,365 @@
+ 	{ 0x19e5, 0x000a, PCI_ANY_ID, PCI_ANY_ID, }, /* v2 dp slave*/
+ 	{ 0, }
+ };
++
++/*driver power management handler for pm_ops*/
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,32))
++static int ssd_hio_suspend(struct pci_dev *pdev, pm_message_t state)
++{
++#else
++static int ssd_hio_suspend(struct device *ddev)
++{
++	struct pci_dev *pdev = to_pci_dev(ddev);
++#endif
++	struct ssd_device *dev;
++
++
++	if (!pdev) {
++		return -EINVAL;
++	}
++
++	dev = pci_get_drvdata(pdev);
++	if (!dev) {
++		return -EINVAL;
++	}
++
++	hio_warn("%s: suspend disk start.\n", dev->name);
++	ssd_unregister_sysfs(dev);
++
++	/* offline firstly */
++	test_and_clear_bit(SSD_ONLINE, &dev->state);
++
++	/* clean work queue first */
++	if (!dev->slave) {
++		test_and_clear_bit(SSD_INIT_WORKQ, &dev->state);
++		ssd_cleanup_workq(dev);
++	}
++
++	/* flush cache */
++	(void)ssd_flush(dev);
++	(void)ssd_save_md(dev);
++
++	/* save smart */
++	if (!dev->slave) {
++		ssd_save_smart(dev);
++	}
++
++	/* clean routine */
++	if (!dev->slave) {
++		ssd_cleanup_routine(dev);
++	}
++
++	ssd_cleanup_thread(dev);
++
++	ssd_free_irq(dev);
++
++	if (!dev->slave) {
++		ssd_cleanup_log(dev);
++	}
++
++	if (dev->reload_fw) { //reload fw
++		ssd_reg32_write(dev->ctrlp + SSD_RELOAD_FW_REG, SSD_RELOAD_FW);
++	}
++
++	/* unmap physical adress */
++	if (dev->ctrlp) {
++#ifdef LINUX_SUSE_OS
++		iounmap(dev->ctrlp);
++#else
++		pci_iounmap(pdev, dev->ctrlp);
++#endif
++		dev->ctrlp = NULL;
++	}
++
++	if (dev->mmio_base) {
++		release_mem_region(dev->mmio_base, dev->mmio_len);
++		dev->mmio_base = 0;
++	}
++
++	pci_disable_device(pdev);
++
++	hio_warn("%s: suspend disk finish.\n", dev->name);
++
++	return 0;
++}
++
++
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,32))
++static int ssd_hio_resume(struct pci_dev *pdev)
++{
++#else
++static int ssd_hio_resume(struct device *ddev)
++{
++	struct pci_dev *pdev = to_pci_dev(ddev);
++#endif
++	struct ssd_device *dev = NULL;
++	int ret = 0;
++
++	if (!pdev ) {
++		ret = -EINVAL;
++		goto out;
++	}
++
++	dev = pci_get_drvdata(pdev);
++	if (!dev) {
++		ret = -ENOMEM;
++		goto out_alloc_dev;
++	}
++
++	hio_warn("%s: resume disk start.\n", dev->name);
++	ret = pci_enable_device(pdev);
++	if (ret) {
++		hio_warn("%s: can not enable device\n", dev->name);
++		goto out_enable_device;
++	}
++
++	pci_set_master(pdev);
++
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,31))
++	ret = pci_set_dma_mask(pdev, DMA_64BIT_MASK);
++#else
++	ret = pci_set_dma_mask(pdev, DMA_BIT_MASK(64));
++#endif
++	if (ret) {
++		hio_warn("%s: set dma mask: failed\n", dev->name);
++		goto out_set_dma_mask;
++	}
++
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,31))
++	ret = pci_set_consistent_dma_mask(pdev, DMA_64BIT_MASK);
++#else
++	ret = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
++#endif
++	if (ret) {
++		hio_warn("%s: set consistent dma mask: failed\n", dev->name);
++		goto out_set_dma_mask;
++	}
++
++	dev->mmio_base = pci_resource_start(pdev, 0);
++	dev->mmio_len = pci_resource_len(pdev, 0);
++
++	if (!request_mem_region(dev->mmio_base, dev->mmio_len, SSD_DEV_NAME)) {
++		hio_warn("%s: can not reserve MMIO region 0\n", dev->name);
++		ret = -EBUSY;
++		goto out_request_mem_region;
++	}
++
++	/* 2.6.9 kernel bug */
++	dev->ctrlp = pci_iomap(pdev, 0, 0);
++	if (!dev->ctrlp) {
++		hio_warn("%s: can not remap IO region 0\n", dev->name);
++		ret = -ENOMEM;
++		goto out_pci_iomap;
++	}
++
++	ret = ssd_check_hw(dev);
++	if (ret) {
++		hio_err("%s: check hardware failed\n", dev->name);
++		goto out_check_hw;
++	}
++
++	/* alarm led ? */
++	ssd_clear_alarm(dev);
++
++	ret = ssd_init_fw_info(dev);
++	if (ret) {
++		hio_err("%s: init firmware info failed\n", dev->name);
++		/* alarm led */
++		ssd_set_alarm(dev);
++		goto out_init_fw_info;
++	}
++
++	/* slave port ? */
++	if (dev->slave) {
++		goto init_next1;
++	}
++
++	ret = ssd_init_rom_info(dev);
++	if (ret) {
++		hio_err("%s: init rom info failed\n", dev->name);
++		/* alarm led */
++		ssd_set_alarm(dev);
++		goto out_init_rom_info;
++	}
++
++	ret = ssd_init_label(dev);
++	if (ret) {
++		hio_err("%s: init label failed\n", dev->name);
++		/* alarm led */
++		ssd_set_alarm(dev);
++		goto out_init_label;
++	}
++
++	ret = ssd_init_workq(dev);
++	if (ret) {
++		hio_warn("%s: init workq failed\n", dev->name);
++		goto out_init_workq;
++	}
++	(void)test_and_set_bit(SSD_INIT_WORKQ, &dev->state);
++
++	ret = ssd_init_log(dev);
++	if (ret) {
++		hio_err("%s: init log failed\n", dev->name);
++		/* alarm led */
++		ssd_set_alarm(dev);
++		goto out_init_log;
++	}
++
++	ret = ssd_init_smart(dev);
++	if (ret) {
++		hio_err("%s: init info failed\n", dev->name);
++		/* alarm led */
++		ssd_set_alarm(dev);
++		goto out_init_smart;
++	}
++
++init_next1:
++	ret = ssd_init_hw_info(dev);
++	if (ret) {
++		hio_err("%s: init hardware info failed\n", dev->name);
++		/* alarm led */
++		ssd_set_alarm(dev);
++		goto out_init_hw_info;
++	}
++
++	/* slave port ? */
++	if (dev->slave) {
++		goto init_next2;
++	}
++
++	ret = ssd_init_sensor(dev);
++	if (ret) {
++		hio_err("%s: init sensor failed\n", dev->name);
++		/* alarm led */
++		ssd_set_alarm(dev);
++		goto out_init_sensor;
++	}
++
++	ret = ssd_init_pl_cap(dev);
++	if (ret) {
++		hio_err("%s: int pl_cap failed\n", dev->name);
++		/* alarm led */
++		ssd_set_alarm(dev);
++		goto out_init_pl_cap;
++	}
++
++init_next2:
++	ret = ssd_check_init_state(dev);
++	if (ret) {
++		hio_err("%s: check init state failed\n", dev->name);
++		/* alarm led */
++		ssd_set_alarm(dev);
++		goto out_check_init_state;
++	}
++
++	//flush all base pointer to ssd
++	(void)ssd_reload_ssd_ptr(dev);
++
++	ret = ssd_init_irq(dev);
++	if (ret) {
++		hio_warn("%s: init irq failed\n", dev->name);
++		goto out_init_irq;
++	}
++
++	ret = ssd_init_thread(dev);
++	if (ret) {
++		hio_warn("%s: init thread failed\n", dev->name);
++		goto out_init_thread;
++	}
++
++	/*  */
++	(void)test_and_set_bit(SSD_ONLINE, &dev->state);
++
++	/* slave port ? */
++	if (dev->slave) {
++		goto init_next3;
++	}
++
++	ret = ssd_init_ot_protect(dev);
++	if (ret) {
++		hio_err("%s: int ot_protect failed\n", dev->name);
++		/* alarm led */
++		ssd_set_alarm(dev);
++		goto out_int_ot_protect;
++	}
++
++	ret = ssd_init_wmode(dev);
++	if (ret) {
++		hio_warn("%s: init write mode\n", dev->name);
++		goto out_init_wmode;
++	}
++
++	/* init routine after hw is ready */
++	ret = ssd_init_routine(dev);
++	if (ret) {
++		hio_warn("%s: init routine\n", dev->name);
++		goto out_init_routine;
++	}
++
++init_next3:
++	(void)test_and_set_bit(SSD_INIT_BD, &dev->state);
++
++	dev->save_md = 1;
++
++	hio_warn("%s: resume disk finish.\n", dev->name);
++
++	return 0;
++
++out_init_routine:
++out_init_wmode:
++out_int_ot_protect:
++	ssd_cleanup_thread(dev);
++out_init_thread:
++	ssd_free_irq(dev);
++out_init_irq:
++out_check_init_state:
++out_init_pl_cap:
++out_init_sensor:
++out_init_hw_info:
++out_init_smart:
++	/* slave port ? */
++	if (!dev->slave) {
++		ssd_cleanup_log(dev);
++	}
++out_init_log:
++	/* slave port ? */
++	if (!dev->slave) {
++		test_and_clear_bit(SSD_INIT_WORKQ, &dev->state);
++		ssd_cleanup_workq(dev);
++	}
++out_init_workq:
++out_init_label:
++out_init_rom_info:
++out_init_fw_info:
++out_check_hw:
++#ifdef LINUX_SUSE_OS
++	iounmap(dev->ctrlp);
++#else
++	pci_iounmap(pdev, dev->ctrlp);
++#endif
++out_pci_iomap:
++	release_mem_region(dev->mmio_base, dev->mmio_len);
++out_request_mem_region:
++out_set_dma_mask:
++	pci_disable_device(pdev);
++out_enable_device:
++out_alloc_dev:
++out:
++
++	hio_warn("%s: resume disk fail.\n", dev->name);
++
++	return ret;
++}
++
+ MODULE_DEVICE_TABLE(pci, ssd_pci_tbl);
+ 
+-static struct pci_driver ssd_driver = {
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,32))
++#else
++SIMPLE_DEV_PM_OPS(hio_pm_ops, ssd_hio_suspend, ssd_hio_resume);
++#endif
++
++MODULE_DEVICE_TABLE(pci, ssd_pci_tbl);
++struct pci_driver ssd_driver = {
+ 	.name		= MODULE_NAME, 
+ 	.id_table	= ssd_pci_tbl, 
+ 	.probe		= ssd_init_one, 
+@@ -12305,6 +12672,15 @@
+ #else
+ 	.remove		= ssd_remove_one, 
+ #endif
++
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,32))
++	.suspend 	= ssd_hio_suspend,
++	.resume  	= ssd_hio_resume,
++#else
++	.driver		= {
++		.pm = &hio_pm_ops,
++	},
++#endif
+ };
+ 
+ /* notifier block to get a notify on system shutdown/halt/reboot */
+@@ -12508,8 +12884,9 @@
+ {
+ 	struct ssd_device *dev;
+ 	struct timeval tv;
+-	struct ssd_log *le;
++	struct ssd_log *le, *temp_le = NULL;
+ 	uint64_t cur;
++	int temp = 0;
+ 	int log_nr;
+ 
+ 	if (!bdev || !event_call || !(bdev->bd_disk)) {
+@@ -12527,11 +12904,27 @@
+ 
+ 	while (log_nr--) {
+ 		if (le->time <= cur && le->time >= dev->uptime) {
++			if ((le->le.event == SSD_LOG_SEU_FAULT1) && (le->time < dev->reset_time)) {
++				le++;
++				continue;
++			}
++			if (le->le.event == SSD_LOG_OVER_TEMP || le->le.event == SSD_LOG_NORMAL_TEMP || le->le.event == SSD_LOG_WARN_TEMP) {
++				if (!temp_le || le->time >= temp_le->time) {
++					temp_le = le;
++				}
++				le++;
++				continue;
++			}
+ 			(void)dev->event_call(dev->gd, le->le.event, ssd_parse_log(dev, le, 0));
+ 		}
+ 		le++;
+ 	}
+ 
++	ssd_get_temperature(bdev, &temp);
++	if (temp_le && (temp >= SSD_OT_TEMP_HYST)) {
++		(void)dev->event_call(dev->gd, temp_le->le.event, ssd_parse_log(dev, temp_le, 0));
++	}
++
+ 	return 0;
+ }
+ 
