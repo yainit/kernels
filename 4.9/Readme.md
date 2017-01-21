@@ -22,7 +22,12 @@ ANNOTATIONS, CHANGES :
 Unified patchsets for the 4.9, announced with long term support, 
 are available over 4.9.5 composed to a running kernel, with extractions from Gentoo, ClearOS, 
 Con Kolivas MuQSS, TCP-Stealth, UKSM, BFQ, Ubuntu-12.13, OpenSuSE, Fedora, Mageia, PCLinuxOS, 
-Puppylinux, YaIniT and some special Scheduler modifications, made available since 4.1.    
+Puppylinux, YaIniT and some special Scheduler modifications, 
+alliviating the wasted cores issue, made available since 4.1.    
+##
+
+This composition can be originated to the loosely collected patches
+in compressed archive.
 
 
 ------------------------------------------------------------------------------------------------------------------
