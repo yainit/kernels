@@ -19,11 +19,15 @@ Also use the scripts deblob*  for generation of the GNU/Libre kernel.
 ANNOTATIONS, CHANGES :
 ============================================
 
-Patchsets for the 4.9, announced with long term support, 
-are coming soon ........
+Unified patchsets for the 4.9, announced with long term support, 
+are available over 4.9.5 composed to a running kernel, with extractions from Gentoo, ClearOS, 
+Con Kolivas MuQSS, TCP-Stealth, UKSM, BFQ, Ubuntu-12.13, OpenSuSE, Fedora, Mageia, PCLinuxOS, 
+Puppylinux, YaIniT and some special Scheduler modifications, made available since 4.1.    
+
+
 ------------------------------------------------------------------------------------------------------------------
 
-2016-12-08, 
+2017-01-21, 
 
 Dieter Miosga 
  

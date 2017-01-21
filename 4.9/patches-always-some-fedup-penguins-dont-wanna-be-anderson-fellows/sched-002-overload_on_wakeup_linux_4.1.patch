@@ -1,0 +1,36 @@
+diff -uprNw -X linux-4.1.vanilla/Documentation/dontdiff linux-4.1.vanilla/kernel/sched/fair.c linux-4.1.overload-on-wakeup/kernel/sched/fair.c
+--- linux-4.1.vanilla/kernel/sched/fair.c	2015-06-21 22:05:43.000000000 -0700
++++ linux-4.1.overload-on-wakeup/kernel/sched/fair.c	2015-11-05 01:30:19.693493606 -0800
+@@ -5630,6 +5920,8 @@
+ 	int new_cpu = prev_cpu;
+ 	int want_affine = 0;
+ 	int sync = wake_flags & WF_SYNC;
++	u64 oldest_idle_stamp = 0xfffffffffffffff;
++	int oldest_idle_stamp_cpu;
+ 
+ 	if (sd_flag & SD_BALANCE_WAKE) {
+ 		record_wakee(p);
+@@ -5647,11 +5939,23 @@
+ 				cpu_rq(_cpu)->nr_running)
+ 				continue;
+ 
++			if (cpu_rq(_cpu)->idle_stamp < oldest_idle_stamp)
++			{
++				oldest_idle_stamp = cpu_rq(_cpu)->idle_stamp;
++				oldest_idle_stamp_cpu = _cpu;
++			}
+ 			rcu_read_unlock();
+ 			return _cpu;
+ 		}
+ 	}
+ 
++	if (oldest_idle_stamp != 0xfffffffffffffff)
++	{
++	  new_cpu = oldest_idle_stamp_cpu;
++	  rcu_read_unlock();
++	}
++
++
+ 	for_each_domain(cpu, tmp) {
+ 		if (!(tmp->flags & SD_LOAD_BALANCE))
+ 			break;
