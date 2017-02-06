@@ -23,16 +23,19 @@ Unified patchsets for the 4.9, announced with long term support,
 are available over 4.9.5 composed to a running kernel, with extractions from Gentoo, ClearOS, 
 Con Kolivas MuQSS, TCP-Stealth, UKSM, BFQ, Ubuntu-12.13, OpenSuSE, Fedora, Mageia, PCLinuxOS, 
 Puppylinux, YaIniT and some special Scheduler modifications, 
-alliviating the wasted cores issue, made available since 4.1.    
-##
-
+alliviating the wasted cores issue, made available since 4.1, 
+in the firectory  'always-some-fedup-penguins-dont-wanna-be-anderson-fellows'.   
+#
+A more complete patchset for the 4.9.8 with Debian and Xunlong-H3-Sunxi patches is available under the 
+'1-2-1-2-1-too-tired-1-drugged-off-1-poisoned-off-1 to-the-tigers'  directory
+#
 This composition can be originated to the loosely collected patches
 in compressed archive.
-
+#
 
 ------------------------------------------------------------------------------------------------------------------
 
-2017-01-21, 
+2017-02-06, 
 
 Dieter Miosga 
  
