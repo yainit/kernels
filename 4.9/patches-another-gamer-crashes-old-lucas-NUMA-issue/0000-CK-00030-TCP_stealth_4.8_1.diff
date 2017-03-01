@@ -1,0 +1,642 @@
+diff --git a/include/linux/tcp.h b/include/linux/tcp.h
+index 7be9b12..996cde6 100644
+--- a/include/linux/tcp.h
++++ b/include/linux/tcp.h
+@@ -19,6 +19,7 @@
+ 
+ 
+ #include <linux/skbuff.h>
++#include <linux/cryptohash.h>
+ #include <linux/win_minmax.h>
+ #include <net/sock.h>
+ #include <net/inet_connection_sock.h>
+@@ -348,6 +349,21 @@ struct tcp_sock {
+ 	struct tcp_md5sig_info	__rcu *md5sig_info;
+ #endif
+ 
++#ifdef CONFIG_TCP_STEALTH
++/* Stealth TCP socket configuration */
++	struct {
++		#define TCP_STEALTH_MODE_AUTH		BIT(0)
++		#define TCP_STEALTH_MODE_INTEGRITY	BIT(1)
++		#define TCP_STEALTH_MODE_INTEGRITY_LEN	BIT(2)
++		u8 mode;
++		u8 secret[MD5_MESSAGE_BYTES];
++		u16 integrity_hash;
++		size_t integrity_len;
++		struct skb_mstamp mstamp;
++		bool saw_tsval;
++	} stealth;
++#endif
++
+ /* TCP fastopen related information */
+ 	struct tcp_fastopen_request *fastopen_req;
+ 	/* fastopen_rsk points to request_sock that resulted in this big
+diff --git a/include/net/secure_seq.h b/include/net/secure_seq.h
+index 3f36d45..ec392a1 100644
+--- a/include/net/secure_seq.h
++++ b/include/net/secure_seq.h
+@@ -14,5 +14,10 @@ u64 secure_dccp_sequence_number(__be32 saddr, __be32 daddr,
+ 				__be16 sport, __be16 dport);
+ u64 secure_dccpv6_sequence_number(__be32 *saddr, __be32 *daddr,
+ 				  __be16 sport, __be16 dport);
++#ifdef CONFIG_TCP_STEALTH
++u32 tcp_stealth_do_auth(struct sock *sk, struct sk_buff *skb);
++u32 tcp_stealth_sequence_number(struct sock *sk, __be32 *daddr,
++				u32 daddr_size, __be16 dport);
++#endif
+ 
+ #endif /* _NET_SECURE_SEQ */
+diff --git a/include/net/tcp.h b/include/net/tcp.h
+index 7717302..a73218c 100644
+--- a/include/net/tcp.h
++++ b/include/net/tcp.h
+@@ -430,6 +430,12 @@ void tcp_parse_options(const struct sk_buff *skb,
+ 		       struct tcp_options_received *opt_rx,
+ 		       int estab, struct tcp_fastopen_cookie *foc);
+ const u8 *tcp_parse_md5sig_option(const struct tcphdr *th);
++#ifdef CONFIG_TCP_STEALTH
++const bool tcp_parse_tsval_option(u32 *tsval, const struct tcphdr *th);
++int tcp_stealth_integrity(u16 *hash, u8 *secret, u8 *payload, int len);
++#define be32_isn_to_be16_av(x)	(((__be16 *)&x)[0])
++#define be32_isn_to_be16_ih(x)	(((__be16 *)&x)[1])
++#endif
+ 
+ /*
+  *	TCP v4 functions exported for the inet6 API
+diff --git a/include/uapi/linux/tcp.h b/include/uapi/linux/tcp.h
+index 482898f..fa24d4e 100644
+--- a/include/uapi/linux/tcp.h
++++ b/include/uapi/linux/tcp.h
+@@ -116,6 +116,9 @@ enum {
+ #define TCP_SAVE_SYN		27	/* Record SYN headers for new connections */
+ #define TCP_SAVED_SYN		28	/* Get SYN headers recorded for connection */
+ #define TCP_REPAIR_WINDOW	29	/* Get/set window parameters */
++#define TCP_STEALTH		30
++#define TCP_STEALTH_INTEGRITY	31
++#define TCP_STEALTH_INTEGRITY_LEN	32
+ 
+ struct tcp_repair_opt {
+ 	__u32	opt_code;
+diff --git a/net/core/secure_seq.c b/net/core/secure_seq.c
+index fd3ce46..2d49cee 100644
+--- a/net/core/secure_seq.c
++++ b/net/core/secure_seq.c
+@@ -8,7 +8,11 @@
+ #include <linux/ktime.h>
+ #include <linux/string.h>
+ #include <linux/net.h>
++#include <linux/socket.h>
++#include <linux/ip.h>
++#include <linux/ipv6.h>
+ 
++#include <net/tcp.h>
+ #include <net/secure_seq.h>
+ 
+ #if IS_ENABLED(CONFIG_IPV6) || IS_ENABLED(CONFIG_INET)
+@@ -39,6 +43,102 @@ static u32 seq_scale(u32 seq)
+ }
+ #endif
+ 
++#ifdef CONFIG_TCP_STEALTH
++u32 tcp_stealth_sequence_number(struct sock *sk, __be32 *daddr,
++				u32 daddr_size, __be16 dport)
++{
++	struct tcp_sock *tp = tcp_sk(sk);
++	struct tcp_md5sig_key *md5;
++
++	__u32 sec[MD5_MESSAGE_BYTES / sizeof(__u32)];
++	__u32 i;
++	__u32 tsval = 0;
++
++	__be32 iv[MD5_DIGEST_WORDS] = { 0 };
++	__be32 isn;
++
++	memcpy(iv, daddr, (daddr_size > sizeof(iv)) ? sizeof(iv) : daddr_size);
++
++#ifdef CONFIG_TCP_MD5SIG
++	md5 = tp->af_specific->md5_lookup(sk, sk);
++#else
++	md5 = NULL;
++#endif
++	if (likely(sysctl_tcp_timestamps && !md5) || tp->stealth.saw_tsval)
++		tsval = tp->stealth.mstamp.stamp_jiffies;
++
++	((__be16 *)iv)[2] ^= cpu_to_be16(tp->stealth.integrity_hash);
++	iv[2] ^= cpu_to_be32(tsval);
++	((__be16 *)iv)[6] ^= dport;
++
++	for (i = 0; i < MD5_DIGEST_WORDS; i++)
++		iv[i] = le32_to_cpu(iv[i]);
++	for (i = 0; i < MD5_MESSAGE_BYTES / sizeof(__le32); i++)
++		sec[i] = le32_to_cpu(((__le32 *)tp->stealth.secret)[i]);
++
++	md5_transform(iv, sec);
++
++	isn = cpu_to_be32(iv[0]) ^ cpu_to_be32(iv[1]) ^
++	      cpu_to_be32(iv[2]) ^ cpu_to_be32(iv[3]);
++
++	if (tp->stealth.mode & TCP_STEALTH_MODE_INTEGRITY)
++		be32_isn_to_be16_ih(isn) =
++			cpu_to_be16(tp->stealth.integrity_hash);
++
++	return be32_to_cpu(isn);
++}
++EXPORT_SYMBOL(tcp_stealth_sequence_number);
++
++u32 tcp_stealth_do_auth(struct sock *sk, struct sk_buff *skb)
++{
++	struct tcp_sock *tp = tcp_sk(sk);
++	struct tcphdr *th = tcp_hdr(skb);
++	__be32 isn = th->seq;
++	__be32 hash;
++	__be32 *daddr;
++	u32 daddr_size;
++
++	tp->stealth.saw_tsval =
++		tcp_parse_tsval_option(&tp->stealth.mstamp.stamp_jiffies, th);
++
++	if (tp->stealth.mode & TCP_STEALTH_MODE_INTEGRITY_LEN)
++		tp->stealth.integrity_hash =
++			be16_to_cpu(be32_isn_to_be16_ih(isn));
++
++	switch (tp->inet_conn.icsk_inet.sk.sk_family) {
++#if IS_ENABLED(CONFIG_IPV6)
++	case PF_INET6:
++		daddr_size = sizeof(ipv6_hdr(skb)->daddr.s6_addr32);
++		daddr = ipv6_hdr(skb)->daddr.s6_addr32;
++	break;
++#endif
++	case PF_INET:
++		daddr_size = sizeof(ip_hdr(skb)->daddr);
++		daddr = &ip_hdr(skb)->daddr;
++	break;
++	default:
++		pr_err("TCP Stealth: Unknown network layer protocol, stop!\n");
++		return 1;
++	}
++
++	hash = tcp_stealth_sequence_number(sk, daddr, daddr_size, th->dest);
++	cpu_to_be32s(&hash);
++
++	if (tp->stealth.mode & TCP_STEALTH_MODE_AUTH &&
++	    tp->stealth.mode & TCP_STEALTH_MODE_INTEGRITY_LEN &&
++	    be32_isn_to_be16_av(isn) == be32_isn_to_be16_av(hash))
++		return 0;
++
++	if (tp->stealth.mode & TCP_STEALTH_MODE_AUTH &&
++	    !(tp->stealth.mode & TCP_STEALTH_MODE_INTEGRITY_LEN) &&
++	    isn == hash)
++		return 0;
++
++	return 1;
++}
++EXPORT_SYMBOL(tcp_stealth_do_auth);
++#endif
++
+ #if IS_ENABLED(CONFIG_IPV6)
+ __u32 secure_tcpv6_sequence_number(const __be32 *saddr, const __be32 *daddr,
+ 				   __be16 sport, __be16 dport)
+diff --git a/net/ipv4/Kconfig b/net/ipv4/Kconfig
+index 50d6a9b..4476cee 100644
+--- a/net/ipv4/Kconfig
++++ b/net/ipv4/Kconfig
+@@ -709,3 +709,13 @@ config TCP_MD5SIG
+ 	  on the Internet.
+ 
+ 	  If unsure, say N.
++
++config TCP_STEALTH
++	bool "TCP: Stealth TCP socket support"
++	default n
++	---help---
++	  This option enables support for stealth TCP sockets. If you do not
++	  know what this means, you do not need it.
++
++	  If unsure, say N.
++
+diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
+index ffbb218..2fa1a4a 100644
+--- a/net/ipv4/tcp.c
++++ b/net/ipv4/tcp.c
+@@ -269,6 +269,7 @@
+ #include <linux/err.h>
+ #include <linux/time.h>
+ #include <linux/slab.h>
++#include <linux/vmalloc.h>
+ 
+ #include <net/icmp.h>
+ #include <net/inet_common.h>
+@@ -2358,6 +2359,49 @@ static int tcp_repair_options_est(struct tcp_sock *tp,
+ 	return 0;
+ }
+ 
++#ifdef CONFIG_TCP_STEALTH
++int tcp_stealth_integrity(__be16 *hash, u8 *secret, u8 *payload, int len)
++{
++	struct scatterlist sg[2];
++	struct crypto_ahash *tfm;
++	struct ahash_request *req;
++	__be16 h[MD5_DIGEST_WORDS * 2];
++	int i;
++	int err = 0;
++
++	tfm = crypto_alloc_ahash("md5", 0, CRYPTO_ALG_ASYNC);
++	if (IS_ERR(tfm)) {
++		err = -PTR_ERR(tfm);
++		goto out;
++	}
++	req = ahash_request_alloc(tfm, GFP_ATOMIC);
++	if (!req)
++		err = -EFAULT;
++		goto out;
++
++	sg_init_table(sg, 2);
++	sg_set_buf(&sg[0], secret, MD5_MESSAGE_BYTES);
++	sg_set_buf(&sg[1], payload, len);
++
++	ahash_request_set_callback(req, 0, NULL, NULL);
++	ahash_request_set_crypt(req, sg, (u8 *)h, MD5_MESSAGE_BYTES + len);
++
++	if (crypto_ahash_digest(req)) {
++		err = -EFAULT;
++		goto out;
++	}
++
++	*hash = be16_to_cpu(h[0]);
++	for (i = 1; i < MD5_DIGEST_WORDS * 2; i++)
++		*hash ^= be16_to_cpu(h[i]);
++
++out:
++	ahash_request_free(req);
++	crypto_free_ahash(tfm);
++	return err;
++}
++#endif
++
+ /*
+  *	Socket option code for TCP.
+  */
+@@ -2389,6 +2433,66 @@ static int do_tcp_setsockopt(struct sock *sk, int level,
+ 		release_sock(sk);
+ 		return err;
+ 	}
++#ifdef CONFIG_TCP_STEALTH
++	case TCP_STEALTH: {
++		u8 secret[MD5_MESSAGE_BYTES] = { 0 };
++
++		val = copy_from_user(secret, optval,
++				     min_t(unsigned int, optlen,
++					   MD5_MESSAGE_BYTES));
++		if (val != 0)
++			return -EFAULT;
++
++		lock_sock(sk);
++		memcpy(tp->stealth.secret, secret, MD5_MESSAGE_BYTES);
++		tp->stealth.mode = TCP_STEALTH_MODE_AUTH;
++		tp->stealth.mstamp.v64 = 0;
++		tp->stealth.saw_tsval = false;
++		release_sock(sk);
++		return err;
++	}
++	case TCP_STEALTH_INTEGRITY: {
++		u8 *payload;
++
++		lock_sock(sk);
++
++		if (!(tp->stealth.mode & TCP_STEALTH_MODE_AUTH)) {
++			err = -EOPNOTSUPP;
++			goto stealth_integrity_out_1;
++		}
++
++		if (optlen < 1 || optlen > USHRT_MAX) {
++			err = -EINVAL;
++			goto stealth_integrity_out_1;
++		}
++
++		payload = vmalloc(optlen);
++		if (!payload) {
++			err = -ENOMEM;
++			goto stealth_integrity_out_1;
++		}
++
++		val = copy_from_user(payload, optval, optlen);
++		if (val != 0) {
++			err = -EFAULT;
++			goto stealth_integrity_out_2;
++		}
++
++		err = tcp_stealth_integrity(&tp->stealth.integrity_hash,
++					    tp->stealth.secret, payload,
++					    optlen);
++		if (err)
++			goto stealth_integrity_out_2;
++
++		tp->stealth.mode |= TCP_STEALTH_MODE_INTEGRITY;
++
++stealth_integrity_out_2:
++		vfree(payload);
++stealth_integrity_out_1:
++		release_sock(sk);
++		return err;
++	}
++#endif
+ 	default:
+ 		/* fallthru */
+ 		break;
+@@ -2643,6 +2747,18 @@ static int do_tcp_setsockopt(struct sock *sk, int level,
+ 		tp->notsent_lowat = val;
+ 		sk->sk_write_space(sk);
+ 		break;
++#ifdef CONFIG_TCP_STEALTH
++	case TCP_STEALTH_INTEGRITY_LEN:
++		if (!(tp->stealth.mode & TCP_STEALTH_MODE_AUTH)) {
++			err = -EOPNOTSUPP;
++		} else if (val < 1 || val > USHRT_MAX) {
++			err = -EINVAL;
++		} else {
++			tp->stealth.integrity_len = val;
++			tp->stealth.mode |= TCP_STEALTH_MODE_INTEGRITY_LEN;
++		}
++		break;
++#endif
+ 	default:
+ 		err = -ENOPROTOOPT;
+ 		break;
+diff --git a/net/ipv4/tcp_input.c b/net/ipv4/tcp_input.c
+index a756b87..9d8e4f7 100644
+--- a/net/ipv4/tcp_input.c
++++ b/net/ipv4/tcp_input.c
+@@ -77,6 +77,9 @@
+ #include <linux/errqueue.h>
+ 
+ int sysctl_tcp_timestamps __read_mostly = 1;
++#ifdef CONFIG_TCP_STEALTH
++EXPORT_SYMBOL(sysctl_tcp_timestamps);
++#endif
+ int sysctl_tcp_window_scaling __read_mostly = 1;
+ int sysctl_tcp_sack __read_mostly = 1;
+ int sysctl_tcp_fack __read_mostly = 1;
+@@ -3907,6 +3910,47 @@ static bool tcp_fast_parse_options(const struct sk_buff *skb,
+ 	return true;
+ }
+ 
++#ifdef CONFIG_TCP_STEALTH
++/* Parse only the TSVal field of the TCP Timestamp option header.
++ */
++const bool tcp_parse_tsval_option(u32 *tsval, const struct tcphdr *th)
++{
++	int length = (th->doff << 2) - sizeof(*th);
++	const u8 *ptr = (const u8 *)(th + 1);
++
++	/* If the TCP option is too short, we can short cut */
++	if (length < TCPOLEN_TIMESTAMP)
++		return false;
++
++	while (length > 0) {
++		int opcode = *ptr++;
++		int opsize;
++
++		switch (opcode) {
++		case TCPOPT_EOL:
++			return false;
++		case TCPOPT_NOP:
++			length--;
++			continue;
++		case TCPOPT_TIMESTAMP:
++			opsize = *ptr++;
++			if (opsize != TCPOLEN_TIMESTAMP || opsize > length)
++				return false;
++			*tsval = get_unaligned_be32(ptr);
++			return true;
++		default:
++			opsize = *ptr++;
++			if (opsize < 2 || opsize > length)
++				return false;
++		}
++		ptr += opsize - 2;
++		length -= opsize;
++	}
++	return false;
++}
++EXPORT_SYMBOL(tcp_parse_tsval_option);
++#endif
++
+ #ifdef CONFIG_TCP_MD5SIG
+ /*
+  * Parse MD5 Signature option
+@@ -4595,6 +4639,31 @@ err:
+ 
+ }
+ 
++#ifdef CONFIG_TCP_STEALTH
++static int __tcp_stealth_integrity_check(struct sock *sk, struct sk_buff *skb)
++{
++	struct tcphdr *th = tcp_hdr(skb);
++	struct tcp_sock *tp = tcp_sk(sk);
++	u16 hash;
++	__be32 seq = cpu_to_be32(TCP_SKB_CB(skb)->seq - 1);
++	char *data = skb->data + th->doff * 4;
++	int len = skb->len - th->doff * 4;
++
++	if (len < tp->stealth.integrity_len)
++		return 1;
++
++	if (tcp_stealth_integrity(&hash, tp->stealth.secret, data,
++				  tp->stealth.integrity_len))
++		return 1;
++
++	if (be32_isn_to_be16_ih(seq) != cpu_to_be16(hash))
++		return 1;
++
++	tp->stealth.mode &= ~TCP_STEALTH_MODE_INTEGRITY_LEN;
++	return 0;
++}
++#endif
++
+ static void tcp_data_queue(struct sock *sk, struct sk_buff *skb)
+ {
+ 	struct tcp_sock *tp = tcp_sk(sk);
+@@ -4605,6 +4674,15 @@ static void tcp_data_queue(struct sock *sk, struct sk_buff *skb)
+ 		__kfree_skb(skb);
+ 		return;
+ 	}
++
++#ifdef CONFIG_TCP_STEALTH
++	if (unlikely(tp->stealth.mode & TCP_STEALTH_MODE_INTEGRITY_LEN) &&
++	    __tcp_stealth_integrity_check(sk, skb)) {
++		tcp_reset(sk);
++		goto drop;
++	}
++#endif
++
+ 	skb_dst_drop(skb);
+ 	__skb_pull(skb, tcp_hdr(skb)->doff * 4);
+ 
+@@ -5371,6 +5449,15 @@ void tcp_rcv_established(struct sock *sk, struct sk_buff *skb,
+ 			int eaten = 0;
+ 			bool fragstolen = false;
+ 
++#ifdef CONFIG_TCP_STEALTH
++			if (unlikely(tp->stealth.mode &
++				     TCP_STEALTH_MODE_INTEGRITY_LEN) &&
++			    __tcp_stealth_integrity_check(sk, skb)) {
++				tcp_reset(sk);
++				goto discard;
++			}
++#endif
++
+ 			if (tp->ucopy.task == current &&
+ 			    tp->copied_seq == tp->rcv_nxt &&
+ 			    len - tcp_header_len <= tp->ucopy.len &&
+diff --git a/net/ipv4/tcp_ipv4.c b/net/ipv4/tcp_ipv4.c
+index 7158d4f..ba2ab6f 100644
+--- a/net/ipv4/tcp_ipv4.c
++++ b/net/ipv4/tcp_ipv4.c
+@@ -74,6 +74,7 @@
+ #include <net/xfrm.h>
+ #include <net/secure_seq.h>
+ #include <net/busy_poll.h>
++#include <net/secure_seq.h>
+ 
+ #include <linux/inet.h>
+ #include <linux/ipv6.h>
+@@ -234,6 +235,21 @@ int tcp_v4_connect(struct sock *sk, struct sockaddr *uaddr, int addr_len)
+ 	sk->sk_gso_type = SKB_GSO_TCPV4;
+ 	sk_setup_caps(sk, &rt->dst);
+ 
++#ifdef CONFIG_TCP_STEALTH
++	/* If CONFIG_TCP_STEALTH is defined, we need to know the timestamp as
++	 * early as possible and thus move taking the snapshot of tcp_time_stamp
++	 * here.
++	 */
++	skb_mstamp_get(&tp->stealth.mstamp);
++
++	if (!tp->write_seq && likely(!tp->repair) &&
++	    unlikely(tp->stealth.mode & TCP_STEALTH_MODE_AUTH))
++		tp->write_seq = tcp_stealth_sequence_number(sk,
++					&inet->inet_daddr,
++					sizeof(inet->inet_daddr),
++					usin->sin_port);
++#endif
++
+ 	if (!tp->write_seq && likely(!tp->repair))
+ 		tp->write_seq = secure_tcp_sequence_number(inet->inet_saddr,
+ 							   inet->inet_daddr,
+@@ -1383,6 +1399,8 @@ static struct sock *tcp_v4_cookie_check(struct sock *sk, struct sk_buff *skb)
+  */
+ int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
+ {
++	struct tcp_sock *tp = tcp_sk(sk);
++	struct tcphdr *th = tcp_hdr(skb);
+ 	struct sock *rsk;
+ 
+ 	if (sk->sk_state == TCP_ESTABLISHED) { /* Fast path */
+@@ -1404,6 +1422,15 @@ int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
+ 	if (tcp_checksum_complete(skb))
+ 		goto csum_err;
+ 
++#ifdef CONFIG_TCP_STEALTH
++	if (sk->sk_state == TCP_LISTEN && th->syn && !th->fin &&
++	    unlikely(tp->stealth.mode & TCP_STEALTH_MODE_AUTH) &&
++	    tcp_stealth_do_auth(sk, skb)) {
++		rsk = sk;
++		goto reset;
++	}
++#endif
++
+ 	if (sk->sk_state == TCP_LISTEN) {
+ 		struct sock *nsk = tcp_v4_cookie_check(sk, skb);
+ 
+diff --git a/net/ipv4/tcp_output.c b/net/ipv4/tcp_output.c
+index d48d557..ac98740 100644
+--- a/net/ipv4/tcp_output.c
++++ b/net/ipv4/tcp_output.c
+@@ -931,6 +931,13 @@ static int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it,
+ 	tcb = TCP_SKB_CB(skb);
+ 	memset(&opts, 0, sizeof(opts));
+ 
++#ifdef TCP_STEALTH
++	if (unlikely(tcb->tcp_flags & TCPHDR_SYN &&
++		     tp->stealth.mode & TCP_STEALTH_MODE_AUTH)) {
++		skb->skb_mstamp = tp->stealth.mstamp;
++	}
++#endif
++
+ 	if (unlikely(tcb->tcp_flags & TCPHDR_SYN))
+ 		tcp_options_size = tcp_syn_options(sk, skb, &opts, &md5);
+ 	else
+@@ -3307,7 +3314,15 @@ int tcp_connect(struct sock *sk)
+ 		return -ENOBUFS;
+ 
+ 	tcp_init_nondata_skb(buff, tp->write_seq++, TCPHDR_SYN);
++#ifdef CONFIG_TCP_STEALTH
++	/* The timetamp was already made at the time the ISN was generated
++	 * as we need to know its value in the stealth_tcp_sequence_number()
++	 * function.
++	 */
++	tp->retrans_stamp = tp->stealth.mstamp.stamp_jiffies;
++#else
+ 	tp->retrans_stamp = tcp_time_stamp;
++#endif
+ 	tcp_connect_queue_skb(sk, buff);
+ 	tcp_ecn_send_syn(sk, buff);
+ 
+diff --git a/net/ipv6/tcp_ipv6.c b/net/ipv6/tcp_ipv6.c
+index 94f4f89..27a968b 100644
+--- a/net/ipv6/tcp_ipv6.c
++++ b/net/ipv6/tcp_ipv6.c
+@@ -62,6 +62,7 @@
+ #include <net/inet_common.h>
+ #include <net/secure_seq.h>
+ #include <net/busy_poll.h>
++#include <net/secure_seq.h>
+ 
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
+@@ -278,6 +279,21 @@ static int tcp_v6_connect(struct sock *sk, struct sockaddr *uaddr,
+ 
+ 	sk_set_txhash(sk);
+ 
++#ifdef CONFIG_TCP_STEALTH
++	/* If CONFIG_TCP_STEALTH is defined, we need to know the timestamp as
++	 * early as possible and thus move taking the snapshot of tcp_time_stamp
++	 * here.
++	 */
++	skb_mstamp_get(&tp->stealth.mstamp);
++
++	if (!tp->write_seq && likely(!tp->repair) &&
++	    unlikely(tp->stealth.mode & TCP_STEALTH_MODE_AUTH))
++		tp->write_seq = tcp_stealth_sequence_number(sk,
++					sk->sk_v6_daddr.s6_addr32,
++					sizeof(sk->sk_v6_daddr),
++					inet->inet_dport);
++#endif
++
+ 	if (!tp->write_seq && likely(!tp->repair))
+ 		tp->write_seq = secure_tcpv6_sequence_number(np->saddr.s6_addr32,
+ 							     sk->sk_v6_daddr.s6_addr32,
+@@ -1204,7 +1220,8 @@ out:
+ static int tcp_v6_do_rcv(struct sock *sk, struct sk_buff *skb)
+ {
+ 	struct ipv6_pinfo *np = inet6_sk(sk);
+-	struct tcp_sock *tp;
++	struct tcp_sock *tp = tcp_sk(sk);
++	struct tcphdr *th = tcp_hdr(skb);
+ 	struct sk_buff *opt_skb = NULL;
+ 
+ 	/* Imagine: socket is IPv6. IPv4 packet arrives,
+@@ -1264,6 +1281,13 @@ static int tcp_v6_do_rcv(struct sock *sk, struct sk_buff *skb)
+ 	if (tcp_checksum_complete(skb))
+ 		goto csum_err;
+ 
++#ifdef CONFIG_TCP_STEALTH
++	if (sk->sk_state == TCP_LISTEN && th->syn && !th->fin &&
++	    tp->stealth.mode & TCP_STEALTH_MODE_AUTH &&
++	    tcp_stealth_do_auth(sk, skb))
++		goto reset;
++#endif
++
+ 	if (sk->sk_state == TCP_LISTEN) {
+ 		struct sock *nsk = tcp_v6_cookie_check(sk, skb);
+ 
