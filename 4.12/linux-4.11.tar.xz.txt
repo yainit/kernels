@@ -1,0 +1,1 @@
+# Please download your copy of linux-4.11.tar.xz from ftp.kernel.org or any of its mirrors
