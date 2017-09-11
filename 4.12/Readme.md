@@ -22,9 +22,11 @@ ANNOTATIONS, CHANGES :
 Unified patchsets for the 4.12,
 are available over 4.12.11, composed to a running kernel, with extractions from Gentoo, ClearOS, 
 Con Kolivas MuQSS, UKSM, BFQ, Ubuntu, OpenSuSE, Fedora, Mageia, PCLinuxOS, Puppylinux, YaIniT, 
-in the directory  'patches-Syltian-late-summer-surfs'.   
+in the file 'patches-Syltian-late-summer-surfs.tar.lrz'. 
+I did get the long file warning of github, then I compressed it. I plan for future use to make a git branch for
+the kernel for all those who want compare quickly. 
 
-Caution : Due to the for now inedited Gentoo header patches for 4.12, these patches work over the 4.11 tarball!
+Caution : Due to the for now inedited Gentoo header patches for 4.12, these patches work over the linux-4.11 tarball!
 
 #
 #
