@@ -26,18 +26,20 @@ Puppylinux, YaIniT and some special Scheduler modifications,
 alliviating the wasted cores issue, made available since 4.1, 
 in the firectory  'always-some-fedup-penguins-dont-wanna-be-anderson-fellows'.   
 #
-A more complete patchset for the latest 4.9 kernel at version 4.9.35 with 
+A more complete patchset for the latest 4.9 kernel at version 4.9.50 with 
 Debian and Xunlong-H3-Sunxi patches is available under the 
-'guide-for-hitchhikers-from-the-american-dream'  directory, 
+''  directory, 
 4.9.13 in the  'another-gamer-crashes-old-lucas-NUMA-issue' directory
 #
 This composition can be originated to the loosely collected patches
 in compressed archive.
 #
+Patch archives are compressed to lrzip tarballs now, due to github's policy changes.
+#
 
 ------------------------------------------------------------------------------------------------------------------
 
-2017-07-16, 
+2017-09-25, 
 
 Dieter Miosga 
  
