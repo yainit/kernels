@@ -19,13 +19,13 @@ Also use the scripts deblob*  for generation of the GNU/Libre kernel.
 ANNOTATIONS, CHANGES :
 ============================================
 
-Theis repository will be the next of yainit kernels. 
-4.14 is announced to be the next long term supported kernel .
+This repository is for now left empty for reasons of important changes in 4.15/4.16. 
+4.14 is announced to be the current ong term supported kernel .
 #
 
 ------------------------------------------------------------------------------------------------------------------
 
-2017-09-10, 
+2018-04-22, 
 
 Dieter Miosga 
  
